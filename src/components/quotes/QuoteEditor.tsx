@@ -169,7 +169,12 @@ export function QuoteEditor() {
 
       router.push(`/quotes/${newQuote.id}`)
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Error desconocido')
+      const message = err instanceof Error ? err.message : 'Error desconocido'
+      if (message.toLowerCase().includes('row-level security policy')) {
+        setErrorMsg('Tu usuario no tiene permisos para crear cotizaciones. Solicita acceso al administrador.')
+      } else {
+        setErrorMsg(message)
+      }
       setSaving(false)
     }
   }

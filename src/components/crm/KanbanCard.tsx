@@ -48,6 +48,7 @@ export function KanbanCard({ deal, onClick, isDragOverlay }: KanbanCardProps) {
       onClick={onClick}
       className={cn(
         'bg-brand-paper border border-brand-stone rounded-lg p-3 cursor-grab active:cursor-grabbing',
+        onClick && 'ring-0 hover:ring-1 hover:ring-brand-gold/50',
         'hover:shadow-md hover:-translate-y-0.5 transition-all',
         isDragging && !isDragOverlay && 'opacity-40',
         isDragOverlay && 'shadow-xl rotate-1 cursor-grabbing',

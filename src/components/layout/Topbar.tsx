@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   crm: 'CRM',
+  'crm-calendar': 'Agenda CRM',
   quotes: 'Cotizaciones',
   contracts: 'Contratos',
   approvals: 'Aprobaciones',
@@ -19,8 +20,25 @@ const SEGMENT_LABELS: Record<string, string> = {
   new: 'Nuevo',
 }
 
-function getLabel(segment: string): string {
-  return SEGMENT_LABELS[segment] ?? segment
+function isOpaqueId(segment: string): boolean {
+  const uuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  const longId = /^[a-z0-9_-]{20,}$/i
+  return uuidV4.test(segment) || longId.test(segment)
+}
+
+function getLabel(segment: string, index: number, segments: string[]): string {
+  if (SEGMENT_LABELS[segment]) return SEGMENT_LABELS[segment]
+
+  if (isOpaqueId(segment)) {
+    const parent = segments[index - 1]
+    if (parent === 'crm') return 'Detalle Contacto'
+    if (parent === 'quotes') return 'Detalle Cotizacion'
+    if (parent === 'projects') return 'Detalle Proyecto'
+    if (parent === 'contracts') return 'Detalle Contrato'
+    return 'Detalle'
+  }
+
+  return segment
 }
 
 interface TopbarProps {
@@ -30,10 +48,10 @@ interface TopbarProps {
 export function Topbar({ onMenuClick }: TopbarProps) {
   const pathname = usePathname()
   const segments = pathname.split('/').filter(Boolean)
-  const currentLabel = segments.length > 0 ? getLabel(segments[segments.length - 1]) : 'Dashboard'
+  const currentLabel = segments.length > 0 ? getLabel(segments[segments.length - 1], segments.length - 1, segments) : 'Dashboard'
 
   const breadcrumbs = segments.map((seg, idx) => ({
-    label: getLabel(seg),
+    label: getLabel(seg, idx, segments),
     href: '/' + segments.slice(0, idx + 1).join('/'),
     isLast: idx === segments.length - 1,
   }))
@@ -85,14 +103,16 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     <header className="shrink-0 border-b border-brand-stone/70 bg-white/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-white/65 sm:px-5 md:px-6">
       <div className="mx-auto flex min-h-16 max-w-[1400px] items-center justify-between gap-3 py-2">
         <div className="min-w-0 flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={onMenuClick}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-brand-stone bg-white text-brand-navy transition-colors hover:bg-brand-canvas lg:hidden"
-            aria-label="Abrir menu"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
+          {onMenuClick && (
+            <button
+              type="button"
+              onClick={onMenuClick}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-brand-stone bg-white text-brand-navy transition-colors hover:bg-brand-canvas"
+              aria-label="Abrir menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+          )}
 
           <p className="truncate text-sm font-semibold text-brand-navy sm:hidden">{currentLabel}</p>
 

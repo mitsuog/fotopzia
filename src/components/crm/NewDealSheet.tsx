@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { useContacts } from '@/hooks/useContacts'
@@ -14,7 +15,7 @@ const STAGE_OPTIONS: { value: DealStage; label: string }[] = [
   { value: 'qualified', label: 'Calificado' },
   { value: 'proposal', label: 'Propuesta' },
   { value: 'negotiation', label: 'Negociacion' },
-  { value: 'won', label: 'Ganado' },
+  { value: 'won', label: 'Confirmado' },
   { value: 'lost', label: 'Perdido' },
 ]
 
@@ -40,6 +41,7 @@ interface NewDealSheetProps {
 export function NewDealSheet({ open, defaultStage, onClose }: NewDealSheetProps) {
   const { data: contacts = [] } = useContacts()
   const createDeal = useCreateDeal()
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const {
     register,
@@ -52,17 +54,23 @@ export function NewDealSheet({ open, defaultStage, onClose }: NewDealSheetProps)
   })
 
   async function onSubmit(data: FormOutput) {
-    await createDeal.mutateAsync({
-      contact_id: data.contact_id,
-      title: data.title,
-      stage: data.stage,
-      value: data.value,
-      currency: data.currency || 'MXN',
-      expected_close: data.expected_close || undefined,
-      notes: data.notes || undefined,
-    })
-    reset()
-    onClose()
+    setErrorMsg(null)
+    try {
+      await createDeal.mutateAsync({
+        contact_id: data.contact_id,
+        title: data.title,
+        stage: data.stage,
+        value: data.value,
+        currency: data.currency || 'MXN',
+        expected_close: data.expected_close || undefined,
+        notes: data.notes || undefined,
+      })
+      reset()
+      onClose()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No fue posible crear el deal.'
+      setErrorMsg(message)
+    }
   }
 
   if (!open) return null
@@ -167,6 +175,12 @@ export function NewDealSheet({ open, defaultStage, onClose }: NewDealSheetProps)
           >
             {isSubmitting ? 'Creando...' : 'Crear Deal'}
           </button>
+
+          {errorMsg && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {errorMsg}
+            </div>
+          )}
         </form>
       </div>
     </>

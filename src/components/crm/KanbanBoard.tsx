@@ -13,6 +13,7 @@ import { useDeals, useUpdateDealStage } from '@/hooks/useDeals'
 import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import { NewDealSheet } from './NewDealSheet'
+import { ProspectDetailSheet } from './ProspectDetailSheet'
 import { Search } from 'lucide-react'
 import type { Deal, DealStage } from '@/types/crm'
 
@@ -27,6 +28,8 @@ export function KanbanBoard({ initialDeals }: KanbanBoardProps) {
   const updateStage = useUpdateDealStage()
 
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [selectedProspectDeal, setSelectedProspectDeal] = useState<Deal | null>(null)
+  const [pipelineError, setPipelineError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [newDealStage, setNewDealStage] = useState<DealStage>('lead')
   const [isNewDealOpen, setIsNewDealOpen] = useState(false)
@@ -54,6 +57,7 @@ export function KanbanBoard({ initialDeals }: KanbanBoardProps) {
 
   function handleDragEnd(event: DragEndEvent) {
     setActiveId(null)
+    setPipelineError(null)
     const { active, over } = event
     if (!over) return
     const dealId = active.id as string
@@ -61,7 +65,15 @@ export function KanbanBoard({ initialDeals }: KanbanBoardProps) {
     if (STAGES.includes(targetStage)) {
       const deal = deals.find(d => d.id === dealId)
       if (deal && deal.stage !== targetStage) {
-        updateStage.mutate({ dealId, stage: targetStage })
+        updateStage.mutate(
+          { dealId, stage: targetStage },
+          {
+            onError: (error) => {
+              const message = error instanceof Error ? error.message : 'No fue posible mover el deal.'
+              setPipelineError(message)
+            },
+          },
+        )
       }
     }
   }
@@ -93,6 +105,12 @@ export function KanbanBoard({ initialDeals }: KanbanBoardProps) {
         </button>
       </div>
 
+      {pipelineError && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {pipelineError}
+        </div>
+      )}
+
       {/* Board */}
       <div className="flex-1 overflow-x-auto">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -103,6 +121,7 @@ export function KanbanBoard({ initialDeals }: KanbanBoardProps) {
                 stage={stage}
                 deals={filteredDeals.filter(d => d.stage === stage)}
                 onAddDeal={handleAddDeal}
+                onCardClick={stage === 'prospect' ? setSelectedProspectDeal : undefined}
               />
             ))}
           </div>
@@ -117,6 +136,12 @@ export function KanbanBoard({ initialDeals }: KanbanBoardProps) {
         open={isNewDealOpen}
         defaultStage={newDealStage}
         onClose={() => setIsNewDealOpen(false)}
+      />
+
+      <ProspectDetailSheet
+        open={selectedProspectDeal !== null}
+        deal={selectedProspectDeal}
+        onClose={() => setSelectedProspectDeal(null)}
       />
     </div>
   )

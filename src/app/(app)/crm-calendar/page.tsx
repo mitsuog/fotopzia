@@ -1,4 +1,4 @@
-﻿import { CalendarView } from '@/components/calendar/CalendarView'
+import { CalendarView } from '@/components/calendar/CalendarView'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { createClient } from '@/lib/supabase/server'
 
@@ -9,14 +9,15 @@ const EVENT_COLORS: Record<string, string> = {
   production_session: '#C49A2A',
 }
 
-export default async function CalendarPage() {
+export default async function CrmCalendarPage() {
   const supabase = await createClient()
-  const [{ data: events }, { data: resources }] = await Promise.all([
+  const [{ data: events }, { data: contacts }, { data: resources }] = await Promise.all([
     supabase
       .from('calendar_events')
       .select('id, title, start_at, end_at, type, description, color, location, event_resources(resource:resources(name))')
-      .eq('type', 'production_session')
+      .eq('type', 'meeting')
       .order('start_at'),
+    supabase.from('contacts').select('id, first_name, last_name, company_name').order('first_name'),
     supabase.from('resources').select('id, name, type, is_active').eq('is_active', true).order('name'),
   ])
 
@@ -37,10 +38,15 @@ export default async function CalendarPage() {
 
   return (
     <div>
-      <PageHeader title="Calendario" subtitle="Sesiones, reuniones y eventos del estudio" badge="Agenda" />
+      <PageHeader
+        title="Calendario CRM"
+        subtitle="Reuniones con clientes y proveedores separadas de la agenda operativa"
+        badge="CRM Agenda"
+      />
       <CalendarView
-        mode="operations"
+        mode="crm"
         initialEvents={calendarEvents}
+        initialContacts={(contacts ?? []) as { id: string; first_name: string; last_name: string; company_name: string | null }[]}
         initialResources={(resources ?? []) as { id: string; name: string; type: string }[]}
       />
     </div>

@@ -12,6 +12,20 @@ export default async function ContactDetailPage({
 }) {
   const { contactId } = await params
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  let canEditContact = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    canEditContact = profile?.role === 'admin'
+  }
 
   const { data: contact } = await supabase
     .from('contacts')
@@ -38,6 +52,7 @@ export default async function ContactDetailPage({
       contact={contact as Contact}
       initialDeals={(deals ?? []) as Deal[]}
       initialActivities={(activities ?? []) as Activity[]}
+      canEditContact={canEditContact}
     />
   )
 }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Group, Panel, Separator } from 'react-resizable-panels'
-import { Mail, Phone, Building2, Tag } from 'lucide-react'
+import { useState } from 'react'
+import { Mail, Phone, Building2, Tag, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ActivityFeed } from './ActivityFeed'
+import { EditContactSheet } from './EditContactSheet'
 import type { Contact, Deal, Activity, DealStage } from '@/types/crm'
 
 const STAGE_LABELS: Record<DealStage, string> = {
@@ -13,7 +13,7 @@ const STAGE_LABELS: Record<DealStage, string> = {
   qualified: 'Calificado',
   proposal: 'Propuesta',
   negotiation: 'Negociacion',
-  won: 'Ganado',
+  won: 'Confirmado',
   lost: 'Perdido',
 }
 
@@ -52,23 +52,16 @@ interface ContactDetailProps {
   contact: Contact
   initialDeals: Deal[]
   initialActivities: Activity[]
+  canEditContact: boolean
 }
 
-export function ContactDetail({ contact, initialDeals, initialActivities }: ContactDetailProps) {
+export function ContactDetail({ contact, initialDeals, initialActivities, canEditContact }: ContactDetailProps) {
   const [activeTab, setActiveTab] = useState<TabId>('deals')
-  const [isDesktop, setIsDesktop] = useState(false)
+  const [currentContact, setCurrentContact] = useState<Contact>(contact)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 1024px)')
-    const update = () => setIsDesktop(mediaQuery.matches)
-
-    update()
-    mediaQuery.addEventListener('change', update)
-    return () => mediaQuery.removeEventListener('change', update)
-  }, [])
-
-  const fullName = `${contact.first_name} ${contact.last_name}`
-  const initials = getInitials(contact.first_name, contact.last_name)
+  const fullName = `${currentContact.first_name} ${currentContact.last_name}`
+  const initials = getInitials(currentContact.first_name, currentContact.last_name)
   const avatarColor = getAvatarColor(fullName)
   const tasks = initialActivities.filter(a => a.type === 'task' && !a.completed)
 
@@ -78,7 +71,7 @@ export function ContactDetail({ contact, initialDeals, initialActivities }: Cont
     }
 
     return (
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {initialDeals.map(deal => (
           <div key={deal.id} className="rounded-lg border border-brand-stone bg-brand-paper p-4">
             <div className="flex items-start justify-between gap-2">
@@ -130,117 +123,115 @@ export function ContactDetail({ contact, initialDeals, initialActivities }: Cont
     return renderTasksTab()
   }
 
-  const contactMeta = (
-    <>
-      <div className="mb-6 flex flex-col items-center text-center">
-        <div className={cn('mb-3 flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold text-white', avatarColor)}>
-          {initials}
+  return (
+    <div className="space-y-4">
+      <section className="rounded-xl border border-brand-stone bg-brand-paper p-4 sm:p-5 lg:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className={cn('flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white sm:h-20 sm:w-20 sm:text-2xl', avatarColor)}>
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold text-brand-navy sm:text-2xl">{fullName}</h1>
+              {currentContact.company_name && <p className="mt-0.5 truncate text-sm text-gray-500">{currentContact.company_name}</p>}
+              {currentContact.source && <span className="mt-2 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{currentContact.source}</span>}
+            </div>
+          </div>
+
+          <div className="space-y-3 lg:w-[340px]">
+            {canEditContact && (
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(true)}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-brand-stone bg-white px-3 py-2 text-sm font-medium text-brand-navy transition-colors hover:border-brand-gold/60 hover:bg-brand-canvas/60"
+              >
+                <Pencil className="h-4 w-4" />
+                Editar contacto
+              </button>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-brand-stone bg-white p-3 text-center">
+                <p className="text-2xl font-bold text-brand-navy">{initialDeals.length}</p>
+                <p className="mt-0.5 text-xs text-gray-500">Deals</p>
+              </div>
+              <div className="rounded-lg border border-brand-stone bg-white p-3 text-center">
+                <p className="text-2xl font-bold text-brand-navy">{initialActivities.length}</p>
+                <p className="mt-0.5 text-xs text-gray-500">Actividades</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <h1 className="text-xl font-bold text-brand-navy">{fullName}</h1>
-        {contact.company_name && <p className="mt-0.5 text-sm text-gray-500">{contact.company_name}</p>}
-        {contact.source && <span className="mt-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{contact.source}</span>}
-      </div>
 
-      <div className="space-y-3">
-        {contact.email && (
-          <div className="flex items-center gap-3">
-            <Mail className="h-4 w-4 shrink-0 text-gray-400" />
-            <a href={`mailto:${contact.email}`} className="truncate text-sm text-brand-navy hover:underline">
-              {contact.email}
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {currentContact.email && (
+            <a href={`mailto:${currentContact.email}`} className="flex items-center gap-2 rounded-lg border border-brand-stone bg-white p-3 text-sm text-brand-navy hover:bg-brand-canvas/60">
+              <Mail className="h-4 w-4 shrink-0 text-gray-400" />
+              <span className="truncate">{currentContact.email}</span>
             </a>
-          </div>
-        )}
-        {contact.phone && (
-          <div className="flex items-center gap-3">
-            <Phone className="h-4 w-4 shrink-0 text-gray-400" />
-            <a href={`tel:${contact.phone}`} className="text-sm text-brand-navy hover:underline">
-              {contact.phone}
-            </a>
-          </div>
-        )}
-        {contact.company_name && (
-          <div className="flex items-center gap-3">
-            <Building2 className="h-4 w-4 shrink-0 text-gray-400" />
-            <span className="text-sm text-gray-700">{contact.company_name}</span>
-          </div>
-        )}
-      </div>
+          )}
 
-      {contact.tags && contact.tags.length > 0 && (
-        <div className="mt-5">
-          <div className="mb-2 flex items-center gap-2">
-            <Tag className="h-3.5 w-3.5 text-gray-400" />
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Etiquetas</span>
+          {currentContact.phone && (
+            <a href={`tel:${currentContact.phone}`} className="flex items-center gap-2 rounded-lg border border-brand-stone bg-white p-3 text-sm text-brand-navy hover:bg-brand-canvas/60">
+              <Phone className="h-4 w-4 shrink-0 text-gray-400" />
+              <span>{currentContact.phone}</span>
+            </a>
+          )}
+
+          {currentContact.company_name && (
+            <div className="flex items-center gap-2 rounded-lg border border-brand-stone bg-white p-3 text-sm text-gray-700">
+              <Building2 className="h-4 w-4 shrink-0 text-gray-400" />
+              <span className="truncate">{currentContact.company_name}</span>
+            </div>
+          )}
+        </div>
+
+        {currentContact.tags && currentContact.tags.length > 0 && (
+          <div className="mt-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Tag className="h-3.5 w-3.5 text-gray-400" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Etiquetas</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {currentContact.tags.map(tag => (
+                <span key={tag} className="rounded-full border border-brand-stone bg-white px-2 py-0.5 text-xs text-gray-600">
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {contact.tags.map(tag => (
-              <span key={tag} className="rounded-full border border-brand-stone bg-brand-canvas px-2 py-0.5 text-xs text-gray-600">
-                {tag}
-              </span>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-brand-stone bg-white">
+        <div className="overflow-x-auto border-b border-brand-stone">
+          <div className="flex min-w-max">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'border-b-2 px-5 py-3 text-sm font-medium transition-colors',
+                  activeTab === tab.id ? 'border-brand-gold text-brand-navy' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-brand-navy',
+                )}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
         </div>
+
+        <div className="p-4 sm:p-5">{renderTabContent()}</div>
+      </section>
+
+      {canEditContact && (
+        <EditContactSheet
+          open={isEditOpen}
+          contact={currentContact}
+          onClose={() => setIsEditOpen(false)}
+          onUpdated={setCurrentContact}
+        />
       )}
-
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-brand-stone bg-white p-3 text-center">
-          <p className="text-2xl font-bold text-brand-navy">{initialDeals.length}</p>
-          <p className="mt-0.5 text-xs text-gray-500">Deals</p>
-        </div>
-        <div className="rounded-lg border border-brand-stone bg-white p-3 text-center">
-          <p className="text-2xl font-bold text-brand-navy">{initialActivities.length}</p>
-          <p className="mt-0.5 text-xs text-gray-500">Actividades</p>
-        </div>
-      </div>
-    </>
-  )
-
-  const tabs = (
-    <div className="flex border-b border-brand-stone">
-      {TABS.map(tab => (
-        <button
-          key={tab.id}
-          onClick={() => setActiveTab(tab.id)}
-          className={cn(
-            'border-b-2 px-5 py-3 text-sm font-medium transition-colors',
-            activeTab === tab.id ? 'border-brand-gold text-brand-navy' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-brand-navy',
-          )}
-        >
-          {tab.label}
-        </button>
-      ))}
     </div>
-  )
-
-  if (!isDesktop) {
-    return (
-      <div className="space-y-4">
-        <section className="rounded-xl border border-brand-stone bg-brand-paper p-4 sm:p-6">{contactMeta}</section>
-
-        <section className="rounded-xl border border-brand-stone bg-white">
-          <div className="overflow-x-auto">
-            <div className="min-w-max">{tabs}</div>
-          </div>
-          <div className="p-4 sm:p-5">{renderTabContent()}</div>
-        </section>
-      </div>
-    )
-  }
-
-  return (
-    <Group orientation="horizontal" className="h-[calc(100dvh-132px)] overflow-hidden rounded-lg border border-brand-stone">
-      <Panel defaultSize={38} minSize={28} maxSize={50}>
-        <div className="h-full overflow-y-auto bg-brand-paper p-6">{contactMeta}</div>
-      </Panel>
-
-      <Separator className="w-1 cursor-col-resize bg-brand-stone transition-colors hover:bg-brand-gold/40" />
-
-      <Panel defaultSize={62} minSize={40}>
-        <div className="flex h-full flex-col bg-white">
-          <div className="shrink-0">{tabs}</div>
-          <div className="flex-1 overflow-y-auto p-5">{renderTabContent()}</div>
-        </div>
-      </Panel>
-    </Group>
   )
 }

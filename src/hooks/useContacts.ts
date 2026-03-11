@@ -44,3 +44,37 @@ export function useCreateContact() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
   })
 }
+
+export function useUpdateContact() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: {
+      id: string
+      first_name: string
+      last_name: string
+      email?: string
+      phone?: string
+      company_name?: string
+      source?: string
+      tags?: string[]
+    }) => {
+      const { id, ...changes } = payload
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('contacts')
+        .update(changes)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data as Contact
+    },
+    onSuccess: (updatedContact) => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      queryClient.setQueryData<Contact[]>(['contacts'], prev =>
+        (prev ?? []).map(contact => (contact.id === updatedContact.id ? updatedContact : contact)),
+      )
+    },
+  })
+}

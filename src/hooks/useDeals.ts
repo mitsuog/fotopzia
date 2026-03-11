@@ -3,6 +3,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Deal, DealStage } from '@/types/crm'
 
+function mapDealErrorMessage(message: string): string {
+  const m = message.toLowerCase()
+
+  if (m.includes('duplicar el mismo cliente')) return message
+  if (m.includes('al menos una cotizacion')) return message
+  if (m.includes('autorizacion del cliente')) return message
+  if (m.includes('cotizacion enviada o aprobada')) return message
+  if (m.includes('cotizacion aprobada')) return message
+  if (m.includes('contrato firmado')) return message
+  if (m.includes('row-level security policy')) return 'Tu usuario no tiene permisos para mover este deal.'
+
+  return message
+}
+
 export function useDeals() {
   return useQuery({
     queryKey: ['deals'],
@@ -27,7 +41,7 @@ export function useUpdateDealStage() {
         .from('deals')
         .update({ stage, updated_at: new Date().toISOString() })
         .eq('id', dealId)
-      if (error) throw error
+      if (error) throw new Error(mapDealErrorMessage(error.message))
     },
     onMutate: async ({ dealId, stage }) => {
       await queryClient.cancelQueries({ queryKey: ['deals'] })
@@ -64,7 +78,7 @@ export function useCreateDeal() {
         .insert({ ...payload, created_by: user.id })
         .select('*, contact:contacts(*)')
         .single()
-      if (error) throw error
+      if (error) throw new Error(mapDealErrorMessage(error.message))
       return data
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['deals'] }),

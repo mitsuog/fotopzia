@@ -14,7 +14,7 @@ export default async function KanbanPage() {
     .order('position')
 
   return (
-    <div className="flex min-h-[70dvh] flex-col lg:h-[calc(100dvh-132px)]">
+    <div className="flex min-h-[calc(100vh-180px)] flex-col md:min-h-[calc(100vh-150px)]">
       <PageHeader
         title="CRM Comercial"
         subtitle="Gestiona el pipeline de ventas y da seguimiento a cada oportunidad"

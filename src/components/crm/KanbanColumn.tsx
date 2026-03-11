@@ -21,7 +21,7 @@ const STAGE_LABELS: Record<DealStage, string> = {
   qualified: 'Calificado',
   proposal: 'Propuesta',
   negotiation: 'Negociación',
-  won: 'Ganado',
+  won: 'Confirmado',
   lost: 'Perdido',
 }
 
@@ -37,7 +37,7 @@ export function KanbanColumn({ stage, deals, onAddDeal, onCardClick }: KanbanCol
   const styles = STAGE_STYLES[stage]
 
   return (
-    <div className="min-w-[260px] max-w-[280px] flex flex-col">
+    <div className="min-w-[260px] max-w-[280px] h-full flex flex-col">
       <div className={cn('flex items-center justify-between px-3 py-2 rounded-t-lg', styles.header)}>
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm">{STAGE_LABELS[stage]}</span>
@@ -54,7 +54,7 @@ export function KanbanColumn({ stage, deals, onAddDeal, onCardClick }: KanbanCol
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 flex flex-col gap-2 p-2 rounded-b-lg bg-brand-canvas border border-t-0 border-brand-stone overflow-y-auto max-h-[calc(100vh-200px)]',
+          'flex-1 flex flex-col gap-2 p-2 rounded-b-lg bg-brand-canvas border border-t-0 border-brand-stone overflow-y-auto',
           isOver && 'bg-brand-stone/50',
         )}
       >
