@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /e/Fotopzia/fotopzia/ 2>/dev/null || ls -la \"E:/Fotopzia/fotopzia/\" 2>/dev/null || dir \"E:\\\\Fotopzia\\\\fotopzia\" 2>/dev/null)",
+      "Bash(cd E:/Fotopzia/fotopzia && npx create-next-app@latest . --typescript --tailwind --app --src-dir --import-alias \"@/*\" --yes 2>&1)",
+      "Read(//e/Fotopzia/**)",
+      "Bash(mkdir -p _temp_backup)",
+      "Bash(mv fotopzia/.claude _temp_backup/)",
+      "Bash(mv fotopzia/logo_fotopzia.jpg _temp_backup/)",
+      "Bash(npx create-next-app@latest fotopzia --typescript --tailwind --app --src-dir --import-alias \"@/*\" --yes)",
+      "Bash(cd E:/Fotopzia/fotopzia && npm install @supabase/supabase-js @supabase/ssr zustand @tanstack/react-query @tanstack/react-query-devtools react-hook-form @hookform/resolvers zod @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities date-fns date-fns-tz @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/extension-placeholder @tiptap/extension-character-count @react-pdf/renderer react-resizable-panels resend @react-email/components @ducanh2912/next-pwa blurhash 2>&1 | tail -10)",
+      "Bash(cd E:/Fotopzia/fotopzia && npm install @fullcalendar/react @fullcalendar/core @fullcalendar/daygrid @fullcalendar/timegrid @fullcalendar/resource-timeline @fullcalendar/interaction 2>&1 | tail -5)",
+      "Bash(cd E:/Fotopzia/fotopzia && npm install --save-dev supabase 2>&1 | tail -5)",
+      "Bash(cd E:/Fotopzia/fotopzia && npx shadcn@latest init --defaults 2>&1)"
+    ]
+  }
+}
