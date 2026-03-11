@@ -11,7 +11,23 @@
       "Bash(cd E:/Fotopzia/fotopzia && npm install @supabase/supabase-js @supabase/ssr zustand @tanstack/react-query @tanstack/react-query-devtools react-hook-form @hookform/resolvers zod @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities date-fns date-fns-tz @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/extension-placeholder @tiptap/extension-character-count @react-pdf/renderer react-resizable-panels resend @react-email/components @ducanh2912/next-pwa blurhash 2>&1 | tail -10)",
       "Bash(cd E:/Fotopzia/fotopzia && npm install @fullcalendar/react @fullcalendar/core @fullcalendar/daygrid @fullcalendar/timegrid @fullcalendar/resource-timeline @fullcalendar/interaction 2>&1 | tail -5)",
       "Bash(cd E:/Fotopzia/fotopzia && npm install --save-dev supabase 2>&1 | tail -5)",
-      "Bash(cd E:/Fotopzia/fotopzia && npx shadcn@latest init --defaults 2>&1)"
+      "Bash(cd E:/Fotopzia/fotopzia && npx shadcn@latest init --defaults 2>&1)",
+      "Bash(cd E:/Fotopzia/fotopzia && npx supabase init 2>&1)",
+      "Bash(cd E:/Fotopzia/fotopzia && npx tsc --noEmit 2>&1 | head -40)",
+      "Bash(cd E:/Fotopzia/fotopzia && npx tsc --noEmit 2>&1)",
+      "Bash(cd E:/Fotopzia/fotopzia && npm run build 2>&1 | tail -20)",
+      "Bash(cd E:/Fotopzia/fotopzia && npx tsc --noEmit 2>&1 && echo \"TypeScript OK\")",
+      "Bash(cd E:/Fotopzia/fotopzia && npx supabase db push 2>&1)",
+      "Bash(cd E:/Fotopzia/fotopzia && npx supabase link --project-ref ywrujbkpefqxioftmexm 2>&1)",
+      "Bash(cd E:/Fotopzia/fotopzia && npx supabase login 2>&1)",
+      "Bash(ls E:/Fotopzia/fotopzia/public/ && ls E:/Fotopzia/fotopzia/*.jpg E:/Fotopzia/fotopzia/*.jpeg 2>/dev/null)",
+      "Bash(find /e/Fotopzia/fotopzia/src/components -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.jsx\" -o -name \"*.js\" \\\\\\) 2>/dev/null | sort)",
+      "Bash(iconv -f UTF-16 -t UTF-8 /e/Fotopzia/fotopzia/src/lib/supabase/types.ts 2>/dev/null | head -100)",
+      "Bash(iconv -f UTF-16 -t UTF-8 /e/Fotopzia/fotopzia/src/lib/supabase/types.ts)",
+      "Bash(grep -E \"^\\\\s+[a-z_]+:\\\\s*\\\\{$\")",
+      "Bash(sed 's/:$//')",
+      "Bash(find \"E:/Fotopzia/fotopzia/src/app/\\(app\\)\" -type d | sort)",
+      "Bash(find \"E:/Fotopzia/fotopzia/src\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.css\" -o -name \"*.json\" \\\\\\) ! -path \"./.next/*\" ! -path \"./node_modules/*\" 2>/dev/null | sort)"
     ]
   }
 }
