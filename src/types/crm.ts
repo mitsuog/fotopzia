@@ -1,4 +1,4 @@
-export type DealStage = 'lead' | 'prospect' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost'
+export type DealStage = 'lead' | 'prospect' | 'proposal' | 'won' | 'lost'
 export type ActivityType = 'note' | 'call' | 'email' | 'meeting' | 'task' | 'stage_change' | 'file'
 
 export interface Contact {
@@ -21,6 +21,7 @@ export interface DealContactSummary {
   first_name: string
   last_name: string
   email: string | null
+  phone: string | null
   company_name: string | null
   source: string | null
   tags: string[] | null
@@ -36,6 +37,8 @@ export interface Deal {
   probability: number | null
   expected_close: string | null
   lost_reason: string | null
+  lost_stage: string | null
+  lost_notes: string | null
   notes: string | null
   assigned_to: string | null
   created_by: string
@@ -58,4 +61,10 @@ export interface Activity {
   completed_at: string | null
   created_by: string
   created_at: string
+}
+
+export interface LostDetails {
+  lost_reason: string   // 'precio' | 'competencia' | 'sin_presupuesto' | 'sin_respuesta' | 'otro'
+  lost_stage: string    // 'lead' | 'prospect' | 'proposal'
+  lost_notes?: string
 }

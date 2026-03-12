@@ -1,6 +1,7 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
+import { useState, type ReactNode } from 'react'
 import { ChevronRight, Menu, UserPlus, Handshake, FilePlus2, ScrollText } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
@@ -41,12 +42,32 @@ function getLabel(segment: string, index: number, segments: string[]): string {
   return segment
 }
 
+function getInitials(fullName: string | null | undefined, email: string): string {
+  if (!fullName) return email.slice(0, 1).toUpperCase()
+  const parts = fullName.trim().split(' ').filter(Boolean)
+  if (parts.length === 0) return email.slice(0, 1).toUpperCase()
+  if (parts.length === 1) return parts[0][0].toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 interface TopbarProps {
+  user: {
+    email: string
+    profile?: {
+      full_name: string | null
+      role: string | null
+      avatar_url?: string | null
+    }
+  }
   onMenuClick?: () => void
 }
 
-export function Topbar({ onMenuClick }: TopbarProps) {
+export function Topbar({ user, onMenuClick }: TopbarProps) {
   const pathname = usePathname()
+  const [avatarFailed, setAvatarFailed] = useState(false)
+  const fullName = user.profile?.full_name
+  const avatarUrl = user.profile?.avatar_url ?? null
+  const initials = getInitials(fullName, user.email)
   const segments = pathname.split('/').filter(Boolean)
   const currentLabel = segments.length > 0 ? getLabel(segments[segments.length - 1], segments.length - 1, segments) : 'Dashboard'
 
@@ -56,7 +77,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     isLast: idx === segments.length - 1,
   }))
 
-  let actionButton: React.ReactNode = null
+  let actionButton: ReactNode = null
 
   if (pathname.startsWith('/crm')) {
     actionButton = (
@@ -101,7 +122,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <header className="shrink-0 border-b border-brand-stone/70 bg-white/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-white/65 sm:px-5 md:px-6">
-      <div className="mx-auto flex min-h-16 max-w-[1400px] items-center justify-between gap-3 py-2">
+      <div className="flex min-h-16 w-full items-center justify-between gap-3 py-2">
         <div className="min-w-0 flex items-center gap-2 sm:gap-3">
           {onMenuClick && (
             <button
@@ -132,7 +153,29 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           </nav>
         </div>
 
-        {actionButton && <div className="hidden md:flex md:items-center">{actionButton}</div>}
+        <div className="flex items-center gap-2">
+          {actionButton && <div className="hidden md:flex md:items-center">{actionButton}</div>}
+          <Link
+            href="/settings"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand-stone bg-white px-2 py-1.5 text-brand-navy transition-colors hover:bg-brand-paper"
+            title="Ir a mi perfil"
+          >
+            {avatarUrl && !avatarFailed ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt={fullName || user.email}
+                className="h-7 w-7 rounded-full object-cover ring-1 ring-brand-stone/60"
+                onError={() => setAvatarFailed(true)}
+              />
+            ) : (
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-navy text-[11px] font-semibold text-white">
+                {initials}
+              </span>
+            )}
+            <span className="hidden max-w-36 truncate text-xs font-medium text-brand-navy lg:block">{fullName || user.email}</span>
+          </Link>
+        </div>
       </div>
     </header>
   )

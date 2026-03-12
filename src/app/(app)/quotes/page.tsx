@@ -1,5 +1,4 @@
-﻿import Link from 'next/link'
-import { PageHeader } from '@/components/layout/PageHeader'
+﻿import { PageHeader } from '@/components/layout/PageHeader'
 import { QuotesTable } from '@/components/quotes/QuotesTable'
 import { createClient } from '@/lib/supabase/server'
 import type { Quote } from '@/types/quotes'
@@ -14,16 +13,11 @@ export default async function QuotesPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div>
+    <div className="space-y-5 pb-10">
       <PageHeader
         title="Cotizaciones"
-        subtitle={`${quotes?.length ?? 0} cotizaciones en total`}
+        subtitle={`${quotes?.length ?? 0} en total`}
         badge="Ventas"
-        actions={
-          <Link href="/quotes/new" className="inline-flex items-center rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white">
-            + Nueva Cotizacion
-          </Link>
-        }
       />
       <QuotesTable initialQuotes={(quotes ?? []) as Quote[]} />
     </div>

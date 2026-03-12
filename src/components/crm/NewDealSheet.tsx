@@ -12,9 +12,7 @@ import type { DealStage } from '@/types/crm'
 const STAGE_OPTIONS: { value: DealStage; label: string }[] = [
   { value: 'lead', label: 'Lead' },
   { value: 'prospect', label: 'Prospecto' },
-  { value: 'qualified', label: 'Calificado' },
   { value: 'proposal', label: 'Propuesta' },
-  { value: 'negotiation', label: 'Negociacion' },
   { value: 'won', label: 'Confirmado' },
   { value: 'lost', label: 'Perdido' },
 ]
@@ -22,7 +20,7 @@ const STAGE_OPTIONS: { value: DealStage; label: string }[] = [
 const schema = z.object({
   contact_id: z.string().min(1, 'Selecciona un contacto'),
   title: z.string().min(1, 'El titulo es requerido'),
-  stage: z.enum(['lead', 'prospect', 'qualified', 'proposal', 'negotiation', 'won', 'lost'] as const),
+  stage: z.enum(['lead', 'prospect', 'proposal', 'won', 'lost'] as const),
   value: z.preprocess(value => (value === '' || value == null ? undefined : Number(value)), z.number().positive().optional()),
   currency: z.string().default('MXN'),
   expected_close: z.string().optional(),

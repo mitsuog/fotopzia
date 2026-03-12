@@ -1,6 +1,6 @@
 -- Etapas del funnel como enum
 CREATE TYPE public.deal_stage AS ENUM (
-  'lead', 'prospect', 'qualified', 'proposal', 'negotiation', 'won', 'lost'
+  'lead', 'prospect', 'proposal', 'won', 'lost'
 );
 
 CREATE TYPE public.activity_type AS ENUM (

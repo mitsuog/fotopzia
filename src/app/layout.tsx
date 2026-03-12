@@ -11,7 +11,12 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: 'Fotopzia',
-  description: 'Sistema de gestión para Fotopzia — estudio fotográfico y de video profesional en Ciudad de México',
+  description: 'Sistema de gestion para Fotopzia - estudio fotografico y de video profesional en Ciudad de Mexico',
+  icons: {
+    icon: '/logocuadradoFotopzia.png',
+    shortcut: '/logocuadradoFotopzia.png',
+    apple: '/logocuadradoFotopzia.png',
+  },
 }
 
 export default function RootLayout({
@@ -21,9 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${montserrat.variable} font-sans antialiased`}>
+      <body suppressHydrationWarning className={`${montserrat.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>
   )
 }
+

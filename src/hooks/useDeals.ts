@@ -1,7 +1,7 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { Deal, DealStage } from '@/types/crm'
+import type { Deal, DealStage, LostDetails } from '@/types/crm'
 
 function mapDealErrorMessage(message: string): string {
   const m = message.toLowerCase()
@@ -24,7 +24,7 @@ export function useDeals() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('deals')
-        .select('*, contact:contacts(id, first_name, last_name, email, company_name, source, tags)')
+        .select('*, contact:contacts(id, first_name, last_name, email, phone, company_name, source, tags)')
         .order('position')
       if (error) throw error
       return data as Deal[]
@@ -55,6 +55,48 @@ export function useUpdateDealStage() {
       if (context?.previous) queryClient.setQueryData(['deals'], context.previous)
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['deals'] }),
+  })
+}
+
+export function useUpdateLostDetails() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ dealId, details }: { dealId: string; details: LostDetails }) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('deals')
+        .update({
+          stage: 'lost',
+          lost_reason: details.lost_reason,
+          lost_stage: details.lost_stage,
+          lost_notes: details.lost_notes ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', dealId)
+      if (error) throw new Error(mapDealErrorMessage(error.message))
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['deals'] }),
+  })
+}
+
+export function useReactivateDeal() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (dealId: string) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('deals')
+        .update({
+          stage: 'lead',
+          lost_reason: null,
+          lost_stage: null,
+          lost_notes: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', dealId)
+      if (error) throw new Error(mapDealErrorMessage(error.message))
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['deals'] }),
   })
 }
 

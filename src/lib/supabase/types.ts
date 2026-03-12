@@ -516,6 +516,7 @@ export type Database = {
       }
       contracts: {
         Row: {
+          annexes: Json
           client_token: string | null
           contact_id: string
           content: string
@@ -526,9 +527,14 @@ export type Database = {
           quote_id: string | null
           rejection_reason: string | null
           sent_at: string | null
+          signed_signature_data: string | null
+          signed_signature_name: string | null
           signature_ip: string | null
           signed_at: string | null
           signed_by: string | null
+          initials_data: Json
+          page_count: number
+          pdf_storage_path: string | null
           status: Database["public"]["Enums"]["contract_status"]
           template_id: string | null
           title: string
@@ -536,6 +542,7 @@ export type Database = {
           viewed_at: string | null
         }
         Insert: {
+          annexes?: Json
           client_token?: string | null
           contact_id: string
           content: string
@@ -546,9 +553,14 @@ export type Database = {
           quote_id?: string | null
           rejection_reason?: string | null
           sent_at?: string | null
+          signed_signature_data?: string | null
+          signed_signature_name?: string | null
           signature_ip?: string | null
           signed_at?: string | null
           signed_by?: string | null
+          initials_data?: Json
+          page_count?: number
+          pdf_storage_path?: string | null
           status?: Database["public"]["Enums"]["contract_status"]
           template_id?: string | null
           title: string
@@ -556,6 +568,7 @@ export type Database = {
           viewed_at?: string | null
         }
         Update: {
+          annexes?: Json
           client_token?: string | null
           contact_id?: string
           content?: string
@@ -566,9 +579,14 @@ export type Database = {
           quote_id?: string | null
           rejection_reason?: string | null
           sent_at?: string | null
+          signed_signature_data?: string | null
+          signed_signature_name?: string | null
           signature_ip?: string | null
           signed_at?: string | null
           signed_by?: string | null
+          initials_data?: Json
+          page_count?: number
+          pdf_storage_path?: string | null
           status?: Database["public"]["Enums"]["contract_status"]
           template_id?: string | null
           title?: string
@@ -900,6 +918,9 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          approved_ip: string | null
+          approved_signature_data: string | null
+          approved_signature_name: string | null
           client_token: string | null
           contact_id: string
           created_at: string
@@ -910,6 +931,7 @@ export type Database = {
           internal_notes: string | null
           notes: string | null
           parent_id: string | null
+          pdf_storage_path: string | null
           quote_number: string
           sent_at: string | null
           status: Database["public"]["Enums"]["quote_status"]
@@ -926,6 +948,9 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          approved_ip?: string | null
+          approved_signature_data?: string | null
+          approved_signature_name?: string | null
           client_token?: string | null
           contact_id: string
           created_at?: string
@@ -936,6 +961,7 @@ export type Database = {
           internal_notes?: string | null
           notes?: string | null
           parent_id?: string | null
+          pdf_storage_path?: string | null
           quote_number?: string
           sent_at?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
@@ -952,6 +978,9 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          approved_ip?: string | null
+          approved_signature_data?: string | null
+          approved_signature_name?: string | null
           client_token?: string | null
           contact_id?: string
           created_at?: string
@@ -962,6 +991,7 @@ export type Database = {
           internal_notes?: string | null
           notes?: string | null
           parent_id?: string | null
+          pdf_storage_path?: string | null
           quote_number?: string
           sent_at?: string | null
           status?: Database["public"]["Enums"]["quote_status"]

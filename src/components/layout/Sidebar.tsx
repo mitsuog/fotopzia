@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -15,8 +16,6 @@ import {
   Settings2,
   LogOut,
   BriefcaseBusiness,
-  PanelLeftClose,
-  PanelLeftOpen,
   UserPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -41,12 +40,12 @@ interface SidebarProps {
     profile?: {
       full_name: string | null
       role: string | null
+      avatar_url?: string | null
     }
   }
   className?: string
   onNavigate?: () => void
   collapsed?: boolean
-  onToggleCollapse?: () => void
 }
 
 function getInitials(fullName: string | null | undefined): string {
@@ -57,12 +56,14 @@ function getInitials(fullName: string | null | undefined): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-export function Sidebar({ user, className, onNavigate, collapsed = false, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ user, className, onNavigate, collapsed = false }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const fullName = user.profile?.full_name
   const role = user.profile?.role
+  const avatarUrl = user.profile?.avatar_url ?? null
   const initials = getInitials(fullName)
+  const [avatarFailed, setAvatarFailed] = useState(false)
 
   async function handleLogout() {
     const supabase = createClient()
@@ -78,36 +79,28 @@ export function Sidebar({ user, className, onNavigate, collapsed = false, onTogg
   return (
     <aside
       className={cn(
-        'flex h-full w-full shrink-0 flex-col bg-gradient-to-b from-brand-navy to-[#14233f] text-white shadow-[10px_0_30px_-22px_rgba(16,26,45,0.85)]',
+        'relative z-30 flex h-full w-full shrink-0 flex-col overflow-x-hidden bg-gradient-to-b from-brand-navy to-[#14233f] text-white shadow-[10px_0_30px_-22px_rgba(16,26,45,0.85)]',
         className,
       )}
     >
-      <div className={cn('border-b border-white/10', collapsed ? 'px-2 py-4' : 'px-4 py-5')}>
-        <div className={cn('rounded-xl border border-white/10 bg-white/[0.04]', collapsed ? 'px-2 py-2' : 'px-3 py-3')}>
-          <div className={cn('flex items-center justify-between gap-2', collapsed && 'justify-center')}>
-            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-white', !collapsed && 'hidden')}>
-              FP
-            </div>
-            <Image
-              src="/logo_fotopzia.jpg"
-              alt="Fotopzia Studio"
-              width={150}
-              height={50}
-              className={cn('object-contain', collapsed && 'hidden')}
-              priority
-            />
-            {onToggleCollapse && (
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                className="hidden h-8 w-8 items-center justify-center rounded-md border border-white/15 bg-white/[0.02] text-white/75 transition-colors hover:bg-white/10 hover:text-white md:inline-flex"
-                aria-label={collapsed ? 'Expandir sidebar' : 'Minimizar sidebar'}
-                title={collapsed ? 'Expandir sidebar' : 'Minimizar sidebar'}
-              >
-                {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-              </button>
+      <div className={cn('relative border-b border-white/10', collapsed ? 'px-2 py-5' : 'px-3 py-5')}>
+        <div
+          className={cn(
+            'mx-auto flex items-center justify-center transition-all duration-200',
+            collapsed ? 'h-12 px-2' : 'h-14 px-4',
+          )}
+        >
+          <Image
+            src={collapsed ? '/logocuadradoFotopzia.png' : '/logo_fotopzia.png'}
+            alt="Fotopzia Studio"
+            width={220}
+            height={56}
+            className={cn(
+              'h-auto object-contain transition-[width] duration-200',
+              collapsed ? 'w-10' : 'w-[220px]',
             )}
-          </div>
+            priority
+          />
         </div>
       </div>
 
@@ -115,44 +108,61 @@ export function Sidebar({ user, className, onNavigate, collapsed = false, onTogg
         <Link
           href="/crm/list?newContact=1"
           onClick={onNavigate}
+          aria-label="Alta de Contacto"
+          title={collapsed ? 'Alta de Contacto' : undefined}
           className={cn(
-            'group relative inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-gold px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-gold-light',
-            collapsed && 'h-10 px-0',
+            'group relative inline-flex w-full items-center rounded-lg bg-brand-gold text-xs font-semibold text-white transition-colors hover:bg-brand-gold-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/55 active:scale-[0.98] active:bg-brand-gold-light',
+            collapsed ? 'mx-auto h-12 w-12 justify-center gap-0 px-0' : 'justify-center gap-1.5 px-3 py-2.5',
           )}
         >
-          <UserPlus className="h-3.5 w-3.5" />
-          <span className={cn('whitespace-nowrap', collapsed && 'sr-only')}>Alta de Contacto</span>
+          <UserPlus className={cn('shrink-0', collapsed ? 'h-5 w-5' : 'h-3.5 w-3.5')} />
+          {!collapsed && <span className="whitespace-nowrap">Alta de Contacto</span>}
           <span
             className={cn(
-              'pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white shadow-lg',
-              collapsed && 'group-hover:block',
+              'pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white shadow-lg transition-all duration-150',
+              collapsed
+                ? 'translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-active:translate-x-0 group-active:opacity-100'
+                : 'hidden',
             )}
+            style={{ zIndex: 100 }}
           >
             Alta de Contacto
           </span>
         </Link>
       </div>
 
-      <nav className={cn('flex-1 space-y-1 overflow-y-auto p-3 pt-4', collapsed && 'px-2')}>
+      <nav className={cn('flex-1 space-y-1 overflow-x-hidden overflow-y-auto p-3 pt-4', collapsed && 'px-2')}>
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
             onClick={onNavigate}
+            aria-label={label}
+            title={collapsed ? label : undefined}
             className={cn(
-              'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
-              collapsed && 'justify-center px-0',
+              'group relative flex h-11 items-center rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/45 active:ring-1 active:ring-white/25',
+              collapsed ? 'mx-auto w-12 justify-center gap-0 px-0' : 'gap-3.5 px-3.5',
               isActive(href)
-                ? 'bg-brand-gold/20 text-white ring-1 ring-brand-gold/40'
-                : 'text-white/70 hover:bg-white/12 hover:text-white',
+                ? 'bg-brand-gold/25 text-white ring-1 ring-brand-gold/50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
+                : 'text-white/70 hover:bg-white/14 hover:text-white active:bg-white/18 active:text-white',
             )}
           >
-            <Icon className={cn('h-4 w-4 shrink-0', isActive(href) ? 'text-brand-gold' : 'text-white/55 group-hover:text-brand-gold/85')} />
-            <span className={cn('whitespace-nowrap', collapsed && 'sr-only')}>{label}</span>
+            <Icon
+              className={cn(
+                'shrink-0 transition-colors',
+                collapsed ? 'h-[22px] w-[22px]' : 'h-[18px] w-[18px]',
+                isActive(href)
+                  ? 'text-brand-gold'
+                  : 'text-white/55 group-hover:text-brand-gold/85 group-active:text-brand-gold/85',
+              )}
+            />
+            {!collapsed && <span className="whitespace-nowrap">{label}</span>}
             <span
               className={cn(
-                'pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white shadow-lg',
-                collapsed && 'group-hover:block',
+                'pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[100] -translate-y-1/2 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white shadow-lg transition-all duration-150',
+                collapsed
+                  ? 'translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-active:translate-x-0 group-active:opacity-100'
+                  : 'hidden',
               )}
             >
               {label}
@@ -161,32 +171,71 @@ export function Sidebar({ user, className, onNavigate, collapsed = false, onTogg
         ))}
       </nav>
 
-      <div className={cn('border-t border-white/10 p-3', collapsed && 'px-2')}>
-        <div className={cn('rounded-xl border border-white/10 bg-white/[0.04] p-3', collapsed && 'p-2')}>
-          <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
-            <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gold text-sm font-bold text-white"
-              title={fullName || user.email}
-            >
-              {initials}
-            </div>
-            <div className={cn('min-w-0 flex-1', collapsed && 'sr-only')}>
-              <p className="truncate text-sm font-semibold text-white">{fullName || user.email}</p>
-              {role && <p className="truncate text-[11px] capitalize text-white/60">{role}</p>}
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className={cn(
-              'mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-1.5 text-xs text-white/70 transition-colors hover:bg-white/8 hover:text-white',
-              collapsed && 'mt-2 px-0',
+      <div className={cn('border-t border-white/10', collapsed ? 'p-2' : 'p-3')}>
+        {collapsed ? (
+          <div className="flex flex-col items-center gap-2">
+            {avatarUrl && !avatarFailed ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt={fullName || user.email}
+                className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-white/30"
+                onError={() => setAvatarFailed(true)}
+              />
+            ) : (
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-gold text-sm font-bold text-white"
+                title={fullName || user.email}
+              >
+                {initials}
+              </div>
             )}
-            title="Cerrar sesion"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span className={cn(collapsed && 'sr-only')}>Cerrar sesion</span>
-          </button>
-        </div>
+            <button
+              onClick={handleLogout}
+              aria-label="Cerrar sesion"
+              title="Cerrar sesion"
+              className="group relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-white/10 text-white/70 transition-colors hover:bg-white/10 hover:text-white active:bg-white/14"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-active:translate-x-0 group-active:opacity-100">
+                Cerrar sesion
+              </span>
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center gap-3 px-1 py-1">
+              {avatarUrl && !avatarFailed ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt={fullName || user.email}
+                  className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/30"
+                  onError={() => setAvatarFailed(true)}
+                />
+              ) : (
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gold text-sm font-bold text-white"
+                  title={fullName || user.email}
+                >
+                  {initials}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-white">{fullName || user.email}</p>
+                {role && <p className="truncate text-[11px] capitalize text-white/60">{role}</p>}
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-1.5 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              title="Cerrar sesion"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Cerrar sesion</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   )

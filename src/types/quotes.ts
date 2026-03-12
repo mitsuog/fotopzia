@@ -1,6 +1,17 @@
 export type QuoteStatus = 'draft' | 'sent' | 'viewed' | 'approved' | 'rejected' | 'expired'
 export type ContractStatus = 'draft' | 'sent' | 'viewed' | 'signed' | 'rejected' | 'voided'
 
+export interface ContractAnnex {
+  id: string
+  title: string
+  storage_path: string
+  mime_type: string
+  requires_signature: boolean
+  signed_at: string | null
+  signed_by: string | null
+  signature_data: string | null
+}
+
 export interface QuoteLineItem {
   id: string
   quote_id: string
@@ -28,6 +39,10 @@ export interface Quote {
   valid_until: string | null
   notes: string | null
   internal_notes: string | null
+  approved_signature_data?: string | null
+  approved_signature_name?: string | null
+  approved_ip?: string | null
+  pdf_storage_path?: string | null
   created_by: string
   created_at: string
   updated_at: string
@@ -52,6 +67,12 @@ export interface Contract {
   status: ContractStatus
   signed_by: string | null
   signed_at: string | null
+  signed_signature_data?: string | null
+  signed_signature_name?: string | null
+  initials_data?: string[]
+  page_count?: number
+  annexes?: ContractAnnex[]
+  pdf_storage_path?: string | null
   created_by: string
   created_at: string
   updated_at: string

@@ -27,7 +27,8 @@
       "Bash(grep -E \"^\\\\s+[a-z_]+:\\\\s*\\\\{$\")",
       "Bash(sed 's/:$//')",
       "Bash(find \"E:/Fotopzia/fotopzia/src/app/\\(app\\)\" -type d | sort)",
-      "Bash(find \"E:/Fotopzia/fotopzia/src\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.css\" -o -name \"*.json\" \\\\\\) ! -path \"./.next/*\" ! -path \"./node_modules/*\" 2>/dev/null | sort)"
+      "Bash(find \"E:/Fotopzia/fotopzia/src\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.css\" -o -name \"*.json\" \\\\\\) ! -path \"./.next/*\" ! -path \"./node_modules/*\" 2>/dev/null | sort)",
+      "Bash(find /e/Fotopzia/fotopzia/src -type f \\\\\\( -name \"*admin*\" -o -name \"*Admin*\" \\\\\\) 2>/dev/null | head -20)"
     ]
   }
 }
