@@ -1,113 +1,185 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Printer, ChevronDown } from 'lucide-react'
-import { useUpdateQuoteStatus } from '@/hooks/useQuotes'
-import { cn } from '@/lib/utils'
-import type { QuoteStatus } from '@/types/quotes'
-
-const TRANSITIONS: Record<QuoteStatus, { label: string; next: QuoteStatus; className: string }[]> = {
-  draft:    [{ label: 'Marcar como Enviada', next: 'sent',     className: 'bg-blue-600 hover:bg-blue-700 text-white' }],
-  sent:     [{ label: 'Marcar como Vista',   next: 'viewed',   className: 'bg-purple-600 hover:bg-purple-700 text-white' },
-             { label: 'Aprobar manualmente', next: 'approved', className: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
-             { label: 'Marcar rechazada',    next: 'rejected', className: 'bg-red-600 hover:bg-red-700 text-white' }],
-  viewed:   [{ label: 'Aprobar manualmente', next: 'approved', className: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
-             { label: 'Marcar rechazada',    next: 'rejected', className: 'bg-red-600 hover:bg-red-700 text-white' }],
-  approved: [],
-  rejected: [{ label: 'Reabrir como borrador', next: 'draft', className: 'bg-gray-600 hover:bg-gray-700 text-white' }],
-  expired:  [{ label: 'Reabrir como borrador', next: 'draft', className: 'bg-gray-600 hover:bg-gray-700 text-white' }],
-}
+import { Printer } from 'lucide-react'
+import { WorkflowCommentDialog } from '@/components/ui/WorkflowCommentDialog'
 
 interface QuoteActionsProps {
   quoteId: string
-  status: QuoteStatus
+  status: string
   dealId?: string | null
+  approvalStatus?: string | null
+  canApprove: boolean
+  supersededByQuoteNumber?: string | null
 }
 
-export function QuoteActions({ quoteId, status, dealId }: QuoteActionsProps) {
+export function QuoteActions({
+  quoteId,
+  status,
+  dealId,
+  approvalStatus,
+  canApprove,
+  supersededByQuoteNumber,
+}: QuoteActionsProps) {
   const router = useRouter()
-  const updateStatus = useUpdateQuoteStatus()
-  const [open, setOpen] = useState(false)
+  const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const transitions = TRANSITIONS[status] ?? []
+  const [success, setSuccess] = useState<string | null>(null)
+  const [showReturnDialog, setShowReturnDialog] = useState(false)
 
-  async function handleTransition(next: QuoteStatus) {
+  async function runWorkflow(
+    action: 'submit_approval' | 'approve' | 'reject' | 'return_to_review' | 'send_signature',
+    direct = false,
+    comment?: string,
+  ) {
     setError(null)
-    setOpen(false)
+    setSuccess(null)
+    setLoadingAction(action + (direct ? '_direct' : ''))
     try {
-      await updateStatus.mutateAsync({ quoteId, status: next })
+      const response = await fetch(`/api/quotes/${quoteId}/workflow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, direct, comment }),
+      })
+
+      const payload = await response.json().catch(() => ({ error: 'No fue posible ejecutar el workflow.' }))
+      if (!response.ok) throw new Error(payload.error ?? 'No fue posible ejecutar el workflow.')
+
+      if (action === 'submit_approval') setSuccess('Cotizacion enviada a aprobacion interna.')
+      if (action === 'approve') setSuccess('Cotizacion aprobada internamente.')
+      if (action === 'reject') setSuccess('Cotizacion rechazada internamente.')
+      if (action === 'return_to_review') setSuccess('Cotizacion regresada a revision con comentario.')
+      if (action === 'send_signature' && direct) setSuccess('Cotizacion aprobada y enviada a firma en un solo paso.')
+      if (action === 'send_signature' && !direct) setSuccess('Cotizacion enviada a firma del cliente.')
       router.refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error actualizando estado')
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No fue posible ejecutar el workflow.')
+    } finally {
+      setLoadingAction(null)
     }
   }
 
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {/* Print */}
-      <a
-        href={`/quotes/${quoteId}/print`}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-lg border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy transition-colors hover:bg-brand-canvas"
-      >
-        <Printer className="h-3.5 w-3.5" />
-        Imprimir / PDF
-      </a>
+  const isApprovedFlow = approvalStatus === 'approved'
+  const isInApproval = approvalStatus === 'in_progress' || approvalStatus === 'pending'
+  const canReturnToReview = status === 'sent' || status === 'viewed' || isApprovedFlow
+  const isSuperseded = Boolean(supersededByQuoteNumber)
 
-      {/* Deal link */}
-      {dealId && (
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
         <a
-          href={`/crm/kanban`}
+          href={`/quotes/${quoteId}/print`}
+          target="_blank"
+          rel="noreferrer"
           className="inline-flex items-center gap-1.5 rounded-lg border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy transition-colors hover:bg-brand-canvas"
         >
-          Ver Deal →
+          <Printer className="h-3.5 w-3.5" />
+          Ver machote / PDF
         </a>
-      )}
 
-      {/* Status transitions */}
-      {transitions.length === 1 && (
-        <button
-          onClick={() => handleTransition(transitions[0].next)}
-          disabled={updateStatus.isPending}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50',
-            transitions[0].className,
-          )}
-        >
-          {updateStatus.isPending ? 'Guardando…' : transitions[0].label}
-        </button>
-      )}
-
-      {transitions.length > 1 && (
-        <div className="relative">
-          <button
-            onClick={() => setOpen(v => !v)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-navy-light transition-colors"
+        {dealId && (
+          <a
+            href="/crm/kanban"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy transition-colors hover:bg-brand-canvas"
           >
-            Cambiar estado <ChevronDown className="h-3 w-3" />
+            Ver Deal
+          </a>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {canApprove && !isInApproval && !isApprovedFlow && (
+          <button
+            type="button"
+            onClick={() => runWorkflow('submit_approval')}
+            disabled={Boolean(loadingAction)}
+            className="rounded-md border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy hover:bg-brand-paper disabled:opacity-50"
+          >
+            {loadingAction === 'submit_approval' ? 'Enviando...' : 'Enviar a aprobacion'}
           </button>
-          {open && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-              <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-lg border border-brand-stone bg-white shadow-lg">
-                {transitions.map(t => (
-                  <button
-                    key={t.next}
-                    onClick={() => handleTransition(t.next)}
-                    className="flex w-full items-center px-3 py-2 text-left text-xs text-gray-700 hover:bg-brand-canvas transition-colors"
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        )}
+
+        {canApprove && isInApproval && (
+          <>
+            <button
+              type="button"
+              onClick={() => runWorkflow('approve')}
+              disabled={Boolean(loadingAction)}
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {loadingAction === 'approve' ? 'Aprobando...' : 'Aprobar workflow'}
+            </button>
+            <button
+              type="button"
+              onClick={() => runWorkflow('reject')}
+              disabled={Boolean(loadingAction)}
+              className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {loadingAction === 'reject' ? 'Rechazando...' : 'Rechazar workflow'}
+            </button>
+          </>
+        )}
+
+        {canApprove && isApprovedFlow && status !== 'sent' && status !== 'viewed' && status !== 'approved' && (
+          <button
+            type="button"
+            onClick={() => runWorkflow('send_signature')}
+            disabled={Boolean(loadingAction) || isSuperseded}
+            className="rounded-md bg-brand-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-navy-light disabled:opacity-50"
+          >
+            {loadingAction === 'send_signature' ? 'Enviando...' : 'Enviar a firma'}
+          </button>
+        )}
+
+        {canApprove && !isApprovedFlow && status !== 'sent' && status !== 'viewed' && status !== 'approved' && (
+          <button
+            type="button"
+            onClick={() => runWorkflow('send_signature', true)}
+            disabled={Boolean(loadingAction) || isSuperseded}
+            className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+          >
+            {loadingAction === 'send_signature_direct' ? 'Procesando...' : 'Aprobar y enviar directo a firma'}
+          </button>
+        )}
+
+        {canApprove && canReturnToReview && status !== 'approved' && (
+          <button
+            type="button"
+            onClick={() => setShowReturnDialog(true)}
+            disabled={Boolean(loadingAction)}
+            className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+          >
+            {loadingAction === 'return_to_review' ? 'Regresando...' : 'Regresar a revision'}
+          </button>
+        )}
+      </div>
+
+      <p className="text-[11px] text-gray-500">
+        Estado de aprobacion interna: {approvalStatus ? approvalStatus.replace('_', ' ') : 'sin flujo'}
+      </p>
+
+      {isSuperseded && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+          Esta cotizacion fue reemplazada por la version mas reciente ({supersededByQuoteNumber}). Revisa esa version para enviarla a firma.
+        </p>
       )}
 
-      {error && <p className="w-full text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      {success && <p className="text-xs text-emerald-700">{success}</p>}
+
+      <WorkflowCommentDialog
+        open={showReturnDialog}
+        title="Regresar cotizacion a revision"
+        description="Este paso reabre el workflow y obliga a revisar antes de reenviar a firma."
+        confirmLabel="Regresar a revision"
+        loading={loadingAction === 'return_to_review'}
+        onClose={() => setShowReturnDialog(false)}
+        onConfirm={async (comment) => {
+          await runWorkflow('return_to_review', false, comment)
+          setShowReturnDialog(false)
+        }}
+      />
     </div>
   )
 }

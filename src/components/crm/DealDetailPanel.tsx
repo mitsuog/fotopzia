@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { createClient } from '@/lib/supabase/client'
 
 const STAGE_LABELS: Record<DealStage, string> = {
   lead: 'Lead',
@@ -44,11 +45,75 @@ interface CalendarMetaUser {
   email: string | null
 }
 
+interface ActiveQuoteCandidate {
+  id: string
+  quote_number: string
+  title: string
+  status: 'draft' | 'sent' | 'viewed' | 'approved' | 'rejected' | 'expired'
+  updated_at: string
+  deal_id: string | null
+}
+
+interface ActiveQuoteView extends ActiveQuoteCandidate {
+  approval_status: 'pending' | 'in_progress' | 'approved' | 'rejected' | 'cancelled' | null
+}
+
 function buildIsoFromLocalParts(datePart?: string, hourPart?: string, minutePart?: string): string | undefined {
   if (!datePart || !hourPart || !minutePart) return undefined
   const parsed = new Date(`${datePart}T${hourPart}:${minutePart}:00`)
   if (Number.isNaN(parsed.getTime())) return undefined
   return parsed.toISOString()
+}
+
+function pickActiveQuote(candidates: ActiveQuoteCandidate[], dealId: string): ActiveQuoteCandidate | null {
+  if (!candidates.length) return null
+  const inProgressStatuses: ActiveQuoteCandidate['status'][] = ['draft', 'sent', 'viewed']
+  const byDealInProgress = candidates.find(quote => quote.deal_id === dealId && inProgressStatuses.includes(quote.status))
+  if (byDealInProgress) return byDealInProgress
+
+  const anyInProgress = candidates.find(quote => inProgressStatuses.includes(quote.status))
+  if (anyInProgress) return anyInProgress
+
+  const byDealApproved = candidates.find(quote => quote.deal_id === dealId && quote.status === 'approved')
+  if (byDealApproved) return byDealApproved
+
+  return candidates[0] ?? null
+}
+
+function quoteStatusLabel(status: ActiveQuoteCandidate['status']): string {
+  switch (status) {
+    case 'draft':
+      return 'Borrador'
+    case 'sent':
+      return 'Enviada'
+    case 'viewed':
+      return 'Vista'
+    case 'approved':
+      return 'Aprobada'
+    case 'rejected':
+      return 'Rechazada'
+    case 'expired':
+      return 'Expirada'
+    default:
+      return status
+  }
+}
+
+function flowStatusLabel(status: ActiveQuoteView['approval_status']): string {
+  switch (status) {
+    case 'pending':
+      return 'Pendiente'
+    case 'in_progress':
+      return 'En aprobación'
+    case 'approved':
+      return 'Aprobada'
+    case 'rejected':
+      return 'Rechazada'
+    case 'cancelled':
+      return 'Cancelada'
+    default:
+      return 'Sin flujo'
+  }
 }
 
 // Activity form
@@ -291,6 +356,37 @@ function ActionsTab({ deal, onStageChange, onClose }: { deal: Deal; onStageChang
   const [showActivityForm, setShowActivityForm] = useState(false)
   const reactivate = useReactivateDeal()
   const { data: recentActivities = [] } = useDealActivities(deal.id)
+  const { data: activeQuote } = useQuery({
+    queryKey: ['deal-active-quote', deal.id, deal.contact_id],
+    queryFn: async () => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('quotes')
+        .select('id, quote_number, title, status, updated_at, deal_id')
+        .eq('contact_id', deal.contact_id)
+        .in('status', ['draft', 'sent', 'viewed', 'approved'])
+        .order('updated_at', { ascending: false })
+        .limit(20)
+      if (error) throw error
+      const selected = pickActiveQuote((data ?? []) as ActiveQuoteCandidate[], deal.id)
+      if (!selected) return null
+
+      const { data: latestFlow } = await supabase
+        .from('approval_flows')
+        .select('status')
+        .eq('entity_type', 'quote')
+        .eq('entity_id', selected.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      return {
+        ...selected,
+        approval_status: (latestFlow?.status ?? null) as ActiveQuoteView['approval_status'],
+      }
+    },
+    staleTime: 1000 * 60,
+  })
 
   if (deal.stage === 'lead' || deal.stage === 'prospect') {
     return (
@@ -323,13 +419,30 @@ function ActionsTab({ deal, onStageChange, onClose }: { deal: Deal; onStageChang
   if (deal.stage === 'proposal') {
     return (
       <div className="space-y-3">
-        <Link
-          href={`/quotes/new?dealId=${deal.id}&contactId=${deal.contact_id}`}
-          onClick={onClose}
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-navy px-3 py-2 text-sm font-medium text-white hover:bg-brand-navy-light transition-colors"
-        >
-          + Crear Cotización
-        </Link>
+        {activeQuote ? (
+          <div className="rounded-lg border border-brand-stone bg-brand-paper p-3 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Cotización activa</p>
+            <p className="text-sm font-semibold text-brand-navy">{activeQuote.quote_number}</p>
+            <p className="text-xs text-gray-600">{activeQuote.title}</p>
+            <p className="text-xs text-gray-500">Estado: {quoteStatusLabel(activeQuote.status)}</p>
+            <p className="text-xs text-gray-500">Workflow: {flowStatusLabel(activeQuote.approval_status)}</p>
+            <Link
+              href={`/quotes/${activeQuote.id}`}
+              onClick={onClose}
+              className="flex w-full items-center justify-center rounded-md border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy hover:bg-brand-canvas transition-colors"
+            >
+              Revisar y tomar acciones WF
+            </Link>
+          </div>
+        ) : (
+          <Link
+            href={`/quotes/new?dealId=${deal.id}&contactId=${deal.contact_id}`}
+            onClick={onClose}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-navy px-3 py-2 text-sm font-medium text-white hover:bg-brand-navy-light transition-colors"
+          >
+            + Crear Cotización
+          </Link>
+        )}
         <Link
           href={`/contracts/new?dealId=${deal.id}`}
           onClick={onClose}

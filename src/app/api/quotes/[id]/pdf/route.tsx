@@ -22,8 +22,10 @@ export async function GET(
 
     const quote = data as unknown as QuotePdfData
     const pdf = await renderQuotePdfBuffer(quote)
+    const pdfArrayBuffer = pdf.buffer.slice(pdf.byteOffset, pdf.byteOffset + pdf.byteLength) as ArrayBuffer
+    const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' })
 
-    return new Response(pdf, {
+    return new Response(pdfBlob, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${quote.quote_number}.pdf"`,

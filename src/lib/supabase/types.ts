@@ -422,6 +422,11 @@ export type Database = {
           email: string | null
           first_name: string
           id: string
+          legal_address: string | null
+          legal_entity_type: string
+          legal_name: string | null
+          legal_representative_name: string | null
+          legal_representative_role: string | null
           last_name: string
           phone: string | null
           source: string | null
@@ -436,6 +441,11 @@ export type Database = {
           email?: string | null
           first_name: string
           id?: string
+          legal_address?: string | null
+          legal_entity_type?: string
+          legal_name?: string | null
+          legal_representative_name?: string | null
+          legal_representative_role?: string | null
           last_name: string
           phone?: string | null
           source?: string | null
@@ -450,6 +460,11 @@ export type Database = {
           email?: string | null
           first_name?: string
           id?: string
+          legal_address?: string | null
+          legal_entity_type?: string
+          legal_name?: string | null
+          legal_representative_name?: string | null
+          legal_representative_role?: string | null
           last_name?: string
           phone?: string | null
           source?: string | null
@@ -921,6 +936,11 @@ export type Database = {
           approved_ip: string | null
           approved_signature_data: string | null
           approved_signature_name: string | null
+          client_entity_type: string
+          client_legal_address: string | null
+          client_legal_name: string | null
+          client_representative_name: string | null
+          client_representative_role: string | null
           client_token: string | null
           contact_id: string
           created_at: string
@@ -934,6 +954,10 @@ export type Database = {
           pdf_storage_path: string | null
           quote_number: string
           sent_at: string | null
+          service_date: string | null
+          service_description: string | null
+          service_location: string | null
+          service_type: string | null
           status: Database["public"]["Enums"]["quote_status"]
           subtotal: number
           tax_amount: number
@@ -951,6 +975,11 @@ export type Database = {
           approved_ip?: string | null
           approved_signature_data?: string | null
           approved_signature_name?: string | null
+          client_entity_type?: string
+          client_legal_address?: string | null
+          client_legal_name?: string | null
+          client_representative_name?: string | null
+          client_representative_role?: string | null
           client_token?: string | null
           contact_id: string
           created_at?: string
@@ -964,6 +993,10 @@ export type Database = {
           pdf_storage_path?: string | null
           quote_number?: string
           sent_at?: string | null
+          service_date?: string | null
+          service_description?: string | null
+          service_location?: string | null
+          service_type?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
           subtotal?: number
           tax_amount?: number
@@ -981,6 +1014,11 @@ export type Database = {
           approved_ip?: string | null
           approved_signature_data?: string | null
           approved_signature_name?: string | null
+          client_entity_type?: string
+          client_legal_address?: string | null
+          client_legal_name?: string | null
+          client_representative_name?: string | null
+          client_representative_role?: string | null
           client_token?: string | null
           contact_id?: string
           created_at?: string
@@ -994,6 +1032,10 @@ export type Database = {
           pdf_storage_path?: string | null
           quote_number?: string
           sent_at?: string | null
+          service_date?: string | null
+          service_description?: string | null
+          service_location?: string | null
+          service_type?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
           subtotal?: number
           tax_amount?: number

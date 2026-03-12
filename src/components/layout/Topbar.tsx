@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
-import { ChevronRight, Menu, UserPlus, Handshake, FilePlus2, ScrollText } from 'lucide-react'
+import { ChevronRight, Menu, UserPlus, Handshake, FilePlus2 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -111,11 +111,11 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
   } else if (pathname.startsWith('/contracts')) {
     actionButton = (
       <Link
-        href="/contracts"
+        href="/contracts/new"
         className="inline-flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-navy-light"
       >
-        <ScrollText className="h-3.5 w-3.5" />
-        Ver Contratos
+        <FilePlus2 className="h-3.5 w-3.5" />
+        Nuevo Contrato
       </Link>
     )
   }

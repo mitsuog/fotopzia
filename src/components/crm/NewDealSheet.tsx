@@ -21,10 +21,14 @@ const schema = z.object({
   contact_id: z.string().min(1, 'Selecciona un contacto'),
   title: z.string().min(1, 'El titulo es requerido'),
   stage: z.enum(['lead', 'prospect', 'proposal', 'won', 'lost'] as const),
-  value: z.preprocess(value => (value === '' || value == null ? undefined : Number(value)), z.number().positive().optional()),
+  value: z
+    .string()
+    .min(1, 'Declara el presupuesto estimado.')
+    .transform(value => Number(value))
+    .refine(value => Number.isFinite(value) && value > 0, 'El presupuesto debe ser mayor a 0.'),
   currency: z.string().default('MXN'),
   expected_close: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().min(1, 'Declara las necesidades del servicio.'),
 })
 
 type FormInput = z.input<typeof schema>
@@ -129,7 +133,7 @@ export function NewDealSheet({ open, defaultStage, onClose }: NewDealSheetProps)
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto estimado *</label>
               <input
                 {...register('value')}
                 type="number"
@@ -137,6 +141,7 @@ export function NewDealSheet({ open, defaultStage, onClose }: NewDealSheetProps)
                 placeholder="0.00"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40"
               />
+              {errors.value && <p className="text-xs text-red-500 mt-1">{errors.value.message}</p>}
             </div>
             <div className="w-20">
               <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
@@ -158,12 +163,13 @@ export function NewDealSheet({ open, defaultStage, onClose }: NewDealSheetProps)
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Necesidades del servicio *</label>
             <textarea
               {...register('notes')}
               rows={3}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40 resize-none"
             />
+            {errors.notes && <p className="text-xs text-red-500 mt-1">{errors.notes.message}</p>}
           </div>
 
           <button

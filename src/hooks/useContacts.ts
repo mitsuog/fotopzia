@@ -27,6 +27,11 @@ export function useCreateContact() {
       email?: string
       phone?: string
       company_name?: string
+      legal_entity_type?: 'persona_fisica' | 'persona_moral'
+      legal_name?: string
+      legal_representative_name?: string
+      legal_representative_role?: string
+      legal_address?: string
       source?: string
       tags?: string[]
     }) => {
@@ -55,6 +60,11 @@ export function useUpdateContact() {
       email?: string
       phone?: string
       company_name?: string
+      legal_entity_type?: 'persona_fisica' | 'persona_moral'
+      legal_name?: string
+      legal_representative_name?: string
+      legal_representative_role?: string
+      legal_address?: string
       source?: string
       tags?: string[]
     }) => {

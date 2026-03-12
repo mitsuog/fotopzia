@@ -23,7 +23,7 @@ export default async function NewQuotePage({
   const [{ data: contacts }, { data: deals }] = await Promise.all([
     supabase
       .from('contacts')
-      .select('id, first_name, last_name, company_name, email, phone, source, tags, assigned_to, created_by, created_at, updated_at')
+      .select('id, first_name, last_name, company_name, email, phone, legal_entity_type, legal_name, legal_representative_name, legal_representative_role, legal_address, source, tags, assigned_to, created_by, created_at, updated_at')
       .order('first_name'),
     supabase
       .from('deals')

@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
-import { Mail, Phone, Building2, Tag, Pencil } from 'lucide-react'
+import { Mail, Phone, Building2, Tag, Pencil, FileText, ScrollText, CalendarClock, ClipboardList, FolderKanban } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ActivityFeed } from './ActivityFeed'
 import { EditContactSheet } from './EditContactSheet'
@@ -23,6 +24,91 @@ const STAGE_COLORS: Record<DealStage, string> = {
   lost: 'bg-red-50 text-red-600',
 }
 
+type TabId = 'budgets' | 'activities' | 'tasks'
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'budgets', label: 'Presupuestos' },
+  { id: 'activities', label: 'Actividades' },
+  { id: 'tasks', label: 'Tareas' },
+]
+
+type QuoteSummary = {
+  id: string
+  quote_number: string
+  title: string
+  status: string
+  updated_at: string
+  deal_id: string | null
+}
+
+type ContractSummary = {
+  id: string
+  contract_number: string
+  title: string
+  status: string
+  updated_at: string
+  quote_id: string | null
+}
+
+type UpcomingEvent = {
+  id: string
+  title: string
+  start_at: string
+  end_at: string
+  status: string
+  deal_id: string | null
+}
+
+type OpenFollowup = {
+  id: string
+  event_id: string
+  title: string
+  status: string
+  priority: string
+  due_at: string | null
+}
+
+type PendingApproval = {
+  id: string
+  title: string
+  status: string
+  entity_type: string
+  entity_id: string
+  updated_at: string
+}
+
+type ProjectSummary = {
+  id: string
+  title: string
+  stage: string
+  due_date: string | null
+  deal_id: string | null
+  created_at: string
+}
+
+type OpenProjectTask = {
+  id: string
+  project_id: string
+  title: string
+  status: string
+  priority: string
+  due_at: string | null
+}
+
+interface ContactDetailProps {
+  contact: Contact
+  initialDeals: Deal[]
+  initialActivities: Activity[]
+  activeQuotes: QuoteSummary[]
+  contracts: ContractSummary[]
+  upcomingEvents: UpcomingEvent[]
+  openFollowups: OpenFollowup[]
+  pendingApprovals: PendingApproval[]
+  projects: ProjectSummary[]
+  openProjectTasks: OpenProjectTask[]
+  canEditContact: boolean
+}
+
 function getInitials(firstName: string, lastName: string): string {
   return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
 }
@@ -30,91 +116,287 @@ function getInitials(firstName: string, lastName: string): string {
 function getAvatarColor(name: string): string {
   const colors = ['bg-blue-500', 'bg-violet-500', 'bg-amber-500', 'bg-emerald-500', 'bg-rose-500', 'bg-indigo-500']
   let hash = 0
-  for (let i = 0; i < name.length; i += 1) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
+  for (let i = 0; i < name.length; i += 1) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return colors[Math.abs(hash) % colors.length]
 }
 
-type TabId = 'deals' | 'activities' | 'tasks'
-
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'deals', label: 'Deals' },
-  { id: 'activities', label: 'Actividades' },
-  { id: 'tasks', label: 'Tareas' },
-]
-
-interface ContactDetailProps {
-  contact: Contact
-  initialDeals: Deal[]
-  initialActivities: Activity[]
-  canEditContact: boolean
+function getQuoteStatusLabel(status: string): string {
+  if (status === 'draft') return 'Borrador'
+  if (status === 'sent') return 'Enviada'
+  if (status === 'viewed') return 'Vista'
+  if (status === 'approved') return 'Aprobada'
+  if (status === 'rejected') return 'Rechazada'
+  if (status === 'expired') return 'Vencida'
+  return status
 }
 
-export function ContactDetail({ contact, initialDeals, initialActivities, canEditContact }: ContactDetailProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('deals')
+function getContractStatusLabel(status: string): string {
+  if (status === 'draft') return 'Borrador'
+  if (status === 'sent') return 'Enviado'
+  if (status === 'viewed') return 'Visto'
+  if (status === 'signed') return 'Firmado'
+  if (status === 'rejected') return 'Rechazado'
+  return status
+}
+
+function getApprovalLink(item: PendingApproval): string {
+  if (item.entity_type === 'quote') return `/quotes/${item.entity_id}`
+  if (item.entity_type === 'contract') return `/contracts/${item.entity_id}`
+  return '/approvals'
+}
+
+export function ContactDetail({
+  contact,
+  initialDeals,
+  initialActivities,
+  activeQuotes,
+  contracts,
+  upcomingEvents,
+  openFollowups,
+  pendingApprovals,
+  projects,
+  openProjectTasks,
+  canEditContact,
+}: ContactDetailProps) {
+  const [activeTab, setActiveTab] = useState<TabId>('budgets')
   const [currentContact, setCurrentContact] = useState<Contact>(contact)
   const [isEditOpen, setIsEditOpen] = useState(false)
 
   const fullName = `${currentContact.first_name} ${currentContact.last_name}`
   const initials = getInitials(currentContact.first_name, currentContact.last_name)
   const avatarColor = getAvatarColor(fullName)
-  const tasks = initialActivities.filter(a => a.type === 'task' && !a.completed)
+  const activityTasks = initialActivities.filter(activity => activity.type === 'task' && !activity.completed)
+  const openProjects = projects.filter(project => project.stage !== 'cerrado')
+  const totalTaskCount =
+    activityTasks.length
+    + upcomingEvents.length
+    + openFollowups.length
+    + pendingApprovals.length
+    + openProjects.length
+    + openProjectTasks.length
 
-  function renderDealsTab() {
-    if (initialDeals.length === 0) {
-      return <p className="py-8 text-center text-sm text-gray-400">Sin deals asociados</p>
+  function renderBudgetsTab() {
+    const hasAnyData = initialDeals.length > 0 || activeQuotes.length > 0 || contracts.length > 0 || projects.length > 0
+    if (!hasAnyData) {
+      return <p className="py-8 text-center text-sm text-gray-400">Sin presupuestos o documentos asociados</p>
     }
 
     return (
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        {initialDeals.map(deal => (
-          <div key={deal.id} className="rounded-lg border border-brand-stone bg-brand-paper p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-brand-navy">{deal.title}</p>
-                {deal.value && (
-                  <p className="mt-0.5 text-sm text-gray-600">
-                    ${Number(deal.value).toLocaleString('es-MX')} {deal.currency}
+      <div className="space-y-4">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Presupuestos (deals legacy)</p>
+          {initialDeals.length === 0 ? (
+            <p className="rounded-lg border border-brand-stone bg-brand-paper p-3 text-sm text-gray-500">Sin presupuestos registrados.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {initialDeals.map(deal => (
+                <div key={deal.id} className="rounded-lg border border-brand-stone bg-brand-paper p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-brand-navy">{deal.title}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Presupuesto estimado:{' '}
+                        <span className="font-semibold text-brand-navy">
+                          {deal.value
+                            ? `$${Number(deal.value).toLocaleString('es-MX')} ${deal.currency}`
+                            : 'Sin definir'}
+                        </span>
+                      </p>
+                    </div>
+                    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', STAGE_COLORS[deal.stage])}>
+                      {STAGE_LABELS[deal.stage]}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-600">
+                    Necesidades del servicio: {deal.notes?.trim() ? deal.notes : 'Sin declarar'}
                   </p>
-                )}
-              </div>
-              <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', STAGE_COLORS[deal.stage])}>
-                {STAGE_LABELS[deal.stage]}
-              </span>
+                  {deal.expected_close && (
+                    <p className="mt-1 text-xs text-gray-400">
+                      Cierre estimado: {new Date(deal.expected_close).toLocaleDateString('es-MX')}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
-            {deal.expected_close && (
-              <p className="mt-2 text-xs text-gray-400">Cierre: {new Date(deal.expected_close).toLocaleDateString('es-MX')}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          <div className="rounded-lg border border-brand-stone bg-brand-paper p-4">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <FileText className="h-3.5 w-3.5" />
+              Cotizaciones activas
+            </p>
+            {activeQuotes.length === 0 ? (
+              <p className="text-sm text-gray-500">Sin cotizaciones activas.</p>
+            ) : (
+              <div className="space-y-2">
+                {activeQuotes.map(quote => (
+                  <div key={quote.id} className="rounded-md border border-brand-stone bg-white p-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-brand-navy">{quote.quote_number}</p>
+                        <p className="truncate text-xs text-gray-600">{quote.title}</p>
+                      </div>
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
+                        {getQuoteStatusLabel(quote.status)}
+                      </span>
+                    </div>
+                    <Link href={`/quotes/${quote.id}`} className="mt-2 inline-flex text-xs font-medium text-brand-navy underline">
+                      Ver cotizacion
+                    </Link>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        ))}
+
+          <div className="rounded-lg border border-brand-stone bg-brand-paper p-4">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <ScrollText className="h-3.5 w-3.5" />
+              Contratos
+            </p>
+            {contracts.length === 0 ? (
+              <p className="text-sm text-gray-500">Sin contratos registrados.</p>
+            ) : (
+              <div className="space-y-2">
+                {contracts.map(contract => (
+                  <div key={contract.id} className="rounded-md border border-brand-stone bg-white p-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-brand-navy">{contract.contract_number}</p>
+                        <p className="truncate text-xs text-gray-600">{contract.title}</p>
+                      </div>
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
+                        {getContractStatusLabel(contract.status)}
+                      </span>
+                    </div>
+                    <Link href={`/contracts/${contract.id}`} className="mt-2 inline-flex text-xs font-medium text-brand-navy underline">
+                      Ver contrato
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     )
   }
 
   function renderTasksTab() {
-    if (tasks.length === 0) {
-      return <p className="py-8 text-center text-sm text-gray-400">Sin tareas pendientes</p>
+    if (totalTaskCount === 0) {
+      return <p className="py-8 text-center text-sm text-gray-400">Sin tareas o pendientes activos</p>
     }
 
     return (
-      <div className="space-y-3">
-        {tasks.map(task => (
-          <div key={task.id} className="flex items-start gap-3 rounded-lg border border-brand-stone bg-brand-paper p-3">
-            <div className="mt-0.5 h-4 w-4 shrink-0 rounded border border-gray-300" />
-            <div>
-              <p className="text-sm font-medium text-gray-800">{task.subject || 'Tarea sin titulo'}</p>
-              {task.body && <p className="mt-0.5 text-xs text-gray-500">{task.body}</p>}
-              {task.due_at && <p className="mt-1 text-xs text-gray-400">Vence: {new Date(task.due_at).toLocaleDateString('es-MX')}</p>}
+      <div className="space-y-4">
+        {activityTasks.length > 0 && (
+          <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <ClipboardList className="h-3.5 w-3.5" />
+              Tareas CRM
+            </p>
+            <div className="space-y-2">
+              {activityTasks.map(task => (
+                <div key={task.id} className="rounded-md border border-brand-stone bg-white p-2">
+                  <p className="text-sm font-medium text-brand-navy">{task.subject || 'Tarea sin titulo'}</p>
+                  {task.body && <p className="text-xs text-gray-600">{task.body}</p>}
+                  {task.due_at && <p className="text-xs text-gray-400">Vence: {new Date(task.due_at).toLocaleString('es-MX')}</p>}
+                </div>
+              ))}
             </div>
           </div>
-        ))}
+        )}
+
+        {upcomingEvents.length > 0 && (
+          <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <CalendarClock className="h-3.5 w-3.5" />
+              Citas abiertas
+            </p>
+            <div className="space-y-2">
+              {upcomingEvents.map(event => (
+                <div key={event.id} className="rounded-md border border-brand-stone bg-white p-2">
+                  <p className="text-sm font-medium text-brand-navy">{event.title}</p>
+                  <p className="text-xs text-gray-600">
+                    {new Date(event.start_at).toLocaleString('es-MX')} - {new Date(event.end_at).toLocaleString('es-MX')}
+                  </p>
+                  <p className="text-xs text-gray-400">Estado: {event.status}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {openFollowups.length > 0 && (
+          <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <ClipboardList className="h-3.5 w-3.5" />
+              Seguimientos abiertos
+            </p>
+            <div className="space-y-2">
+              {openFollowups.map(followup => (
+                <div key={followup.id} className="rounded-md border border-brand-stone bg-white p-2">
+                  <p className="text-sm font-medium text-brand-navy">{followup.title}</p>
+                  <p className="text-xs text-gray-600">Estado: {followup.status} · Prioridad: {followup.priority}</p>
+                  {followup.due_at && <p className="text-xs text-gray-400">Vence: {new Date(followup.due_at).toLocaleString('es-MX')}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {pendingApprovals.length > 0 && (
+          <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <ClipboardList className="h-3.5 w-3.5" />
+              WF pendientes por aprobar
+            </p>
+            <div className="space-y-2">
+              {pendingApprovals.map(item => (
+                <div key={item.id} className="rounded-md border border-brand-stone bg-white p-2">
+                  <p className="text-sm font-medium text-brand-navy">{item.title}</p>
+                  <p className="text-xs text-gray-600">Estado: {item.status.replace('_', ' ')} · Tipo: {item.entity_type}</p>
+                  <Link href={getApprovalLink(item)} className="mt-1 inline-flex text-xs font-medium text-brand-navy underline">
+                    Revisar documento
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(openProjects.length > 0 || openProjectTasks.length > 0) && (
+          <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <FolderKanban className="h-3.5 w-3.5" />
+              Proyectos y tareas
+            </p>
+            <div className="space-y-2">
+              {openProjects.map(project => (
+                <div key={project.id} className="rounded-md border border-brand-stone bg-white p-2">
+                  <p className="text-sm font-medium text-brand-navy">{project.title}</p>
+                  <p className="text-xs text-gray-600">Etapa: {project.stage}</p>
+                  {project.due_date && <p className="text-xs text-gray-400">Entrega estimada: {new Date(project.due_date).toLocaleDateString('es-MX')}</p>}
+                </div>
+              ))}
+              {openProjectTasks.map(task => (
+                <div key={task.id} className="rounded-md border border-brand-stone bg-white p-2">
+                  <p className="text-sm font-medium text-brand-navy">{task.title}</p>
+                  <p className="text-xs text-gray-600">Estado: {task.status} · Prioridad: {task.priority}</p>
+                  {task.due_at && <p className="text-xs text-gray-400">Vence: {new Date(task.due_at).toLocaleString('es-MX')}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
 
   function renderTabContent() {
-    if (activeTab === 'deals') return renderDealsTab()
+    if (activeTab === 'budgets') return renderBudgetsTab()
     if (activeTab === 'activities') return <ActivityFeed activities={initialActivities} />
     return renderTasksTab()
   }
@@ -134,7 +416,7 @@ export function ContactDetail({ contact, initialDeals, initialActivities, canEdi
             </div>
           </div>
 
-          <div className="space-y-3 lg:w-[340px]">
+          <div className="space-y-3 lg:w-[360px]">
             {canEditContact && (
               <button
                 type="button"
@@ -146,14 +428,18 @@ export function ContactDetail({ contact, initialDeals, initialActivities, canEdi
               </button>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg border border-brand-stone bg-white p-3 text-center">
                 <p className="text-2xl font-bold text-brand-navy">{initialDeals.length}</p>
-                <p className="mt-0.5 text-xs text-gray-500">Deals</p>
+                <p className="mt-0.5 text-xs text-gray-500">Presupuestos</p>
               </div>
               <div className="rounded-lg border border-brand-stone bg-white p-3 text-center">
-                <p className="text-2xl font-bold text-brand-navy">{initialActivities.length}</p>
-                <p className="mt-0.5 text-xs text-gray-500">Actividades</p>
+                <p className="text-2xl font-bold text-brand-navy">{activeQuotes.length}</p>
+                <p className="mt-0.5 text-xs text-gray-500">Cotizaciones</p>
+              </div>
+              <div className="rounded-lg border border-brand-stone bg-white p-3 text-center">
+                <p className="text-2xl font-bold text-brand-navy">{totalTaskCount}</p>
+                <p className="mt-0.5 text-xs text-gray-500">Pendientes</p>
               </div>
             </div>
           </div>

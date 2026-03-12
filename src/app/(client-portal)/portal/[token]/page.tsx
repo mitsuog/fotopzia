@@ -1,5 +1,7 @@
-import { notFound } from 'next/navigation'
+﻿import { notFound } from 'next/navigation'
+import { getPortalAccessByToken, touchPortalAccess } from '@/lib/portal/token'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { PortalShell } from '@/components/portal/PortalShell'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,89 +9,124 @@ interface PageProps {
   params: Promise<{ token: string }>
 }
 
-type PortalContact = {
-  first_name: string
-  last_name: string
-  email: string | null
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  meeting: 'Reunion',
+  production_session: 'Sesion',
 }
 
-type PortalTokenWithContact = {
-  id: string
-  expires_at: string | null
-  access_count: number
-  contacts: PortalContact | null
+const EVENT_STATUS_LABEL: Record<string, string> = {
+  tentative: 'Tentativa',
+  confirmed: 'Confirmada',
+  cancelled: 'Cancelada',
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('es-MX', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
 }
 
 export default async function ClientPortalPage({ params }: PageProps) {
   const { token } = await params
+  const { access } = await getPortalAccessByToken(token)
+  if (!access) notFound()
 
-  const { data: portalToken } = await supabaseAdmin
-    .from('client_portal_tokens')
-    .select('*, contacts(first_name, last_name, email)')
-    .eq('token', token)
-    .eq('is_active', true)
-    .single()
+  await touchPortalAccess(access)
+  const contact = access.contacts
+  const nowIso = new Date().toISOString()
 
-  if (!portalToken) {
-    notFound()
-  }
+  const [quotesCountResult, contractsCountResult, projectsCountResult, upcomingEventsResult] = await Promise.all([
+    supabaseAdmin.from('quotes').select('*', { count: 'exact', head: true }).eq('contact_id', access.contact_id),
+    supabaseAdmin.from('contracts').select('*', { count: 'exact', head: true }).eq('contact_id', access.contact_id),
+    supabaseAdmin
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('contact_id', access.contact_id)
+      .not('stage', 'eq', 'cerrado'),
+    supabaseAdmin
+      .from('calendar_events')
+      .select('id, title, type, status, start_at, end_at, location, created_by')
+      .eq('contact_id', access.contact_id)
+      .neq('status', 'cancelled')
+      .gte('end_at', nowIso)
+      .order('start_at', { ascending: true })
+      .limit(8),
+  ])
 
-  // Verificar si expiró
-  if (portalToken.expires_at && new Date(portalToken.expires_at) < new Date()) {
-    notFound()
-  }
-
-  // Actualizar último acceso
-  await supabaseAdmin
-    .from('client_portal_tokens')
-    .update({
-      last_accessed_at: new Date().toISOString(),
-      access_count: (portalToken.access_count ?? 0) + 1,
-    })
-    .eq('id', portalToken.id)
-
-  const contact = (portalToken as unknown as PortalTokenWithContact).contacts
+  const upcomingEvents = upcomingEventsResult.data ?? []
+  const nextEvent = upcomingEvents[0] ?? null
+  const ownerIds = Array.from(new Set(upcomingEvents.map(event => event.created_by)))
+  const owners =
+    ownerIds.length > 0
+      ? (
+        await supabaseAdmin
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', ownerIds)
+      ).data ?? []
+      : []
+  const ownerById = new Map(owners.map(owner => [owner.id, owner.full_name]))
 
   return (
-    <div className="min-h-screen bg-[#F0EEE8]">
-      <header className="bg-[#1C2B4A] text-white py-4 px-6">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#C49A2A] flex items-center justify-center">
-            <span className="text-white text-sm font-bold">F</span>
+    <PortalShell
+      token={token}
+      active="summary"
+      title="Resumen"
+      description={contact ? `Bienvenido, ${contact.first_name} ${contact.last_name}` : 'Bienvenido al portal de cliente.'}
+    >
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {[
+          {
+            label: 'Documentos',
+            href: `/portal/${token}/documents`,
+            value: `${quotesCountResult.count ?? 0} cotizaciones / ${contractsCountResult.count ?? 0} contratos`,
+          },
+          {
+            label: 'Mi evento',
+            href: `/portal/${token}/evento`,
+            value: nextEvent ? formatDateTime(nextEvent.start_at) : 'Sin citas programadas',
+          },
+          {
+            label: 'Proyectos activos',
+            href: `/portal/${token}`,
+            value: `${projectsCountResult.count ?? 0} en curso`,
+          },
+        ].map(item => (
+          <a
+            key={item.label}
+            href={item.href}
+            className="rounded-xl border border-brand-stone bg-white p-4 transition-colors hover:bg-brand-paper"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-navy/70">{item.label}</p>
+            <p className="mt-2 text-sm font-semibold text-brand-navy">{item.value}</p>
+          </a>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-brand-stone bg-white p-5">
+        <h2 className="text-sm font-semibold text-brand-navy">Agenda proxima</h2>
+        {upcomingEvents.length === 0 ? (
+          <p className="mt-2 text-sm text-gray-500">Aun no tienes citas registradas en agenda.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {upcomingEvents.map(event => (
+              <div key={event.id} className="rounded-lg border border-brand-stone/80 bg-brand-paper/40 p-3">
+                <p className="text-sm font-semibold text-brand-navy">{event.title}</p>
+                <p className="text-xs text-gray-600">
+                  {EVENT_TYPE_LABEL[event.type] ?? event.type} · {EVENT_STATUS_LABEL[event.status] ?? event.status}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {formatDateTime(event.start_at)} - {formatDateTime(event.end_at)}
+                </p>
+                <p className="text-xs text-gray-600">Atiende: {ownerById.get(event.created_by) ?? 'Equipo Fotopzia'}</p>
+                {event.location ? <p className="text-xs text-gray-600">Ubicacion: {event.location}</p> : null}
+              </div>
+            ))}
           </div>
-          <span className="font-semibold">Fotopzia Studio</span>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto py-8 px-6">
-        <h1 className="text-2xl font-bold mb-2" style={{ color: '#1C2B4A' }}>
-          Portal de Cliente
-        </h1>
-        {contact && (
-          <p className="text-gray-600 mb-8">
-            Bienvenido, {contact.first_name} {contact.last_name}
-          </p>
         )}
-
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-          {[
-            { label: 'Mi Galería', href: `${token}/gallery`, icon: '🖼️' },
-            { label: 'Cotizaciones', href: `${token}/quotes`, icon: '📄' },
-            { label: 'Contratos', href: `${token}/contracts`, icon: '✍️' },
-          ].map(item => (
-            <a
-              key={item.label}
-              href={`/portal/${item.href}`}
-              className="bg-[#FAFAF7] rounded-lg p-6 border border-[#E8E5DC] flex flex-col items-center gap-3 hover:shadow-md transition-shadow"
-            >
-              <span className="text-3xl">{item.icon}</span>
-              <span className="font-medium" style={{ color: '#1C2B4A' }}>
-                {item.label}
-              </span>
-            </a>
-          ))}
-        </div>
-      </main>
-    </div>
+      </section>
+    </PortalShell>
   )
 }
+

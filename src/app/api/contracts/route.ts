@@ -1,15 +1,32 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { parseContractContent, sanitizeStorageFileName, serializeContractContent } from '@/lib/documents/contracts'
+import {
+  buildContractBodyFromTemplate,
+  getContractAnnexTemplates,
+  getDefaultContractTemplateData,
+  serializeContractContent,
+} from '@/lib/documents/contracts'
 import type { ContractAnnex } from '@/types/quotes'
+import type { Json } from '@/lib/supabase/types'
 
 type CreateContractPayload = {
   contact_id: string
-  quote_id?: string | null
-  title: string
-  body: string
   page_count?: number
   include_quote_document?: boolean
+  quote_id?: string | null
+}
+
+type NormalizedContractSource = {
+  entityType: 'persona_fisica' | 'persona_moral'
+  clientLegalName: string
+  representativeName: string
+  representativeRole: string
+  clientAddress: string
+  serviceType: string
+  serviceDescription: string
+  serviceLocation: string
+  serviceDate: string | null
+  missingFields: string[]
 }
 
 function getClientIp(request: Request): string | null {
@@ -59,6 +76,109 @@ async function getPortalLinkForContact(
   return `${origin}/portal/${selectedToken.token}/documents`
 }
 
+function normalizeText(value: string | null | undefined): string {
+  return value?.trim() ?? ''
+}
+
+function buildServiceDescriptionFallback(rawLineItems: Array<{ description: string | null }> | null | undefined): string {
+  const descriptions = (rawLineItems ?? [])
+    .map(item => normalizeText(item.description))
+    .filter(Boolean)
+  if (!descriptions.length) return ''
+  return descriptions.slice(0, 6).join(' | ')
+}
+
+function resolveContractSourceData(input: {
+  quote: {
+    title: string | null
+    client_entity_type: string | null
+    client_legal_name: string | null
+    client_representative_name: string | null
+    client_representative_role: string | null
+    client_legal_address: string | null
+    service_type: string | null
+    service_description: string | null
+    service_date: string | null
+    service_location: string | null
+  }
+  contact: {
+    first_name: string
+    last_name: string
+    company_name: string | null
+    legal_entity_type: string | null
+    legal_name: string | null
+    legal_representative_name: string | null
+    legal_representative_role: string | null
+    legal_address: string | null
+  }
+  lineItems: Array<{ description: string | null }> | null
+}): NormalizedContractSource {
+  const fullName = `${input.contact.first_name} ${input.contact.last_name}`.trim()
+  const contactCompany = normalizeText(input.contact.company_name)
+  const contactEntityType =
+    input.contact.legal_entity_type === 'persona_moral'
+      ? 'persona_moral'
+      : input.contact.legal_entity_type === 'persona_fisica'
+        ? 'persona_fisica'
+        : null
+  const quoteEntityType =
+    input.quote.client_entity_type === 'persona_moral'
+      ? 'persona_moral'
+      : input.quote.client_entity_type === 'persona_fisica'
+        ? 'persona_fisica'
+        : null
+  const entityType: 'persona_fisica' | 'persona_moral' = contactEntityType ?? quoteEntityType ?? 'persona_fisica'
+
+  const clientLegalName = normalizeText(input.quote.client_legal_name)
+    || normalizeText(input.contact.legal_name)
+    || (entityType === 'persona_moral' ? (contactCompany || fullName) : fullName)
+
+  const representativeName = entityType === 'persona_moral'
+    ? (normalizeText(input.quote.client_representative_name) || normalizeText(input.contact.legal_representative_name))
+    : (normalizeText(input.quote.client_representative_name) || fullName || clientLegalName)
+
+  const representativeRole = entityType === 'persona_moral'
+    ? (normalizeText(input.quote.client_representative_role) || normalizeText(input.contact.legal_representative_role))
+    : 'No aplica (persona fisica)'
+
+  const clientAddress = normalizeText(input.quote.client_legal_address)
+    || normalizeText(input.contact.legal_address)
+
+  const serviceType = normalizeText(input.quote.service_type)
+    || normalizeText(input.quote.title)
+
+  const serviceDescription = normalizeText(input.quote.service_description)
+    || buildServiceDescriptionFallback(input.lineItems)
+    || normalizeText(input.quote.title)
+
+  const serviceLocation = normalizeText(input.quote.service_location)
+    || normalizeText(input.contact.legal_address)
+
+  const serviceDate = input.quote.service_date ?? null
+
+  const missingFields: string[] = []
+  if (!clientLegalName) missingFields.push('nombre legal del cliente')
+  if (!clientAddress) missingFields.push('domicilio legal del cliente')
+  if (!serviceType) missingFields.push('tipo de servicio')
+  if (!serviceDescription) missingFields.push('descripcion del servicio')
+  if (!serviceLocation) missingFields.push('ubicacion del servicio')
+  if (entityType === 'persona_moral' && !representativeName) missingFields.push('representante legal')
+  if (entityType === 'persona_moral' && !representativeRole) missingFields.push('cargo del representante legal')
+
+  return {
+    entityType,
+    clientLegalName,
+    representativeName,
+    representativeRole,
+    clientAddress,
+    serviceType,
+    serviceDescription,
+    serviceLocation,
+    serviceDate,
+    missingFields,
+  }
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient()
   const {
@@ -93,110 +213,121 @@ export async function POST(request: Request) {
   }
 
   const contactId = payload.contact_id?.trim()
-  const quoteId = payload.quote_id?.trim() || null
-  const title = payload.title?.trim()
-  const body = payload.body?.trim()
   const pageCount = Number(payload.page_count ?? 1)
   const includeQuoteDocument = Boolean(payload.include_quote_document)
+  const title = 'Contrato de prestacion de servicios Fotopzia Mexico'
 
   if (!contactId) return NextResponse.json({ error: 'Selecciona un contacto.' }, { status: 400 })
-  if (!title) return NextResponse.json({ error: 'El titulo es obligatorio.' }, { status: 400 })
-  if (!body) return NextResponse.json({ error: 'El contenido del contrato es obligatorio.' }, { status: 400 })
   if (!Number.isInteger(pageCount) || pageCount < 1) {
     return NextResponse.json({ error: 'El numero de paginas para antefirma debe ser mayor a 0.' }, { status: 400 })
   }
 
   const { data: contact } = await supabase
     .from('contacts')
-    .select('id')
+    .select('id, first_name, last_name, company_name, legal_entity_type, legal_name, legal_representative_name, legal_representative_role, legal_address')
     .eq('id', contactId)
     .single()
+
   if (!contact) return NextResponse.json({ error: 'El contacto no existe.' }, { status: 400 })
 
-  let quoteDealId: string | null = null
-  if (quoteId) {
-    const { data: quote } = await supabase
-      .from('quotes')
-      .select('id, contact_id, deal_id')
-      .eq('id', quoteId)
-      .single()
-    if (!quote) return NextResponse.json({ error: 'La cotizacion seleccionada no existe.' }, { status: 400 })
-    if (quote.contact_id !== contactId) {
-      return NextResponse.json({ error: 'La cotizacion no corresponde al contacto seleccionado.' }, { status: 400 })
-    }
-    quoteDealId = quote.deal_id
+  const { data: latestApprovedQuote, error: latestQuoteError } = await supabase
+    .from('quotes')
+    .select('id, deal_id, quote_number, title, approved_at, updated_at, client_entity_type, client_legal_name, client_representative_name, client_representative_role, client_legal_address, service_type, service_description, service_date, service_location')
+    .eq('contact_id', contactId)
+    .eq('status', 'approved')
+    .order('approved_at', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (latestQuoteError) {
+    return NextResponse.json({ error: latestQuoteError.message }, { status: 400 })
   }
 
-  const mainContractFile = formData.get('main_contract_file')
-  let sourcePdfPath: string | null = null
-
-  if (mainContractFile instanceof File && mainContractFile.size > 0) {
-    const safeName = sanitizeStorageFileName(mainContractFile.name || 'contrato-base.pdf')
-    const path = `contracts/${contactId}/drafts/main-${Date.now()}-${safeName}`
-    const fileBuffer = await mainContractFile.arrayBuffer()
-    const { error: uploadError } = await supabase.storage
-      .from('contracts-signed')
-      .upload(path, fileBuffer, {
-        contentType: mainContractFile.type || 'application/pdf',
-        upsert: false,
-      })
-    if (uploadError) {
-      return NextResponse.json({ error: `No fue posible subir el contrato base: ${uploadError.message}` }, { status: 400 })
-    }
-    sourcePdfPath = path
+  if (!latestApprovedQuote) {
+    return NextResponse.json({
+      error: 'El contacto no tiene cotizacion aprobada. Debes aprobar una cotizacion con datos legales y del servicio.',
+    }, { status: 400 })
   }
 
-  const annexFiles = formData
-    .getAll('annex_files')
-    .filter((file): file is File => file instanceof File && file.size > 0)
+  const { data: lineItems } = await supabase
+    .from('quote_line_items')
+    .select('description')
+    .eq('quote_id', latestApprovedQuote.id)
+    .order('sort_order', { ascending: true })
 
-  const annexes: ContractAnnex[] = []
-  for (const annexFile of annexFiles) {
-    const annexId = crypto.randomUUID()
-    const safeName = sanitizeStorageFileName(annexFile.name || `${annexId}.pdf`)
-    const path = `contracts/${contactId}/drafts/annex-${annexId}-${safeName}`
-    const fileBuffer = await annexFile.arrayBuffer()
-    const { error: uploadError } = await supabase.storage
-      .from('contracts-signed')
-      .upload(path, fileBuffer, {
-        contentType: annexFile.type || 'application/pdf',
-        upsert: false,
-      })
-    if (uploadError) {
-      return NextResponse.json({ error: `No fue posible subir anexo: ${uploadError.message}` }, { status: 400 })
-    }
+  const normalizedSource = resolveContractSourceData({
+    quote: latestApprovedQuote,
+    contact,
+    lineItems: lineItems ?? [],
+  })
 
-    annexes.push({
-      id: annexId,
-      title: annexFile.name,
-      storage_path: path,
-      mime_type: annexFile.type || 'application/pdf',
-      requires_signature: true,
-      signed_at: null,
-      signed_by: null,
-      signature_data: null,
+  if (normalizedSource.missingFields.length > 0) {
+    return NextResponse.json({
+      error: `Faltan campos obligatorios para contrato: ${normalizedSource.missingFields.join(', ')}.`,
+    }, { status: 400 })
+  }
+
+  await supabase
+    .from('quotes')
+    .update({
+      client_entity_type: normalizedSource.entityType,
+      client_legal_name: normalizedSource.clientLegalName,
+      client_representative_name: normalizedSource.representativeName,
+      client_representative_role: normalizedSource.entityType === 'persona_moral' ? normalizedSource.representativeRole : null,
+      client_legal_address: normalizedSource.clientAddress,
+      service_type: normalizedSource.serviceType,
+      service_description: normalizedSource.serviceDescription,
+      service_location: normalizedSource.serviceLocation,
+      service_date: normalizedSource.serviceDate,
+      updated_at: new Date().toISOString(),
     })
-  }
+    .eq('id', latestApprovedQuote.id)
+
+  await supabase
+    .from('contacts')
+    .update({
+      legal_entity_type: normalizedSource.entityType,
+      legal_name: normalizedSource.clientLegalName,
+      legal_representative_name: normalizedSource.entityType === 'persona_moral' ? normalizedSource.representativeName : null,
+      legal_representative_role: normalizedSource.entityType === 'persona_moral' ? normalizedSource.representativeRole : null,
+      legal_address: normalizedSource.clientAddress,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', contactId)
+
+  const templateData = getDefaultContractTemplateData({
+    client_legal_name: normalizedSource.clientLegalName,
+    client_representative_name: normalizedSource.representativeName,
+    client_representative_role: normalizedSource.representativeRole,
+    client_address: normalizedSource.clientAddress,
+    service_type: normalizedSource.serviceType,
+    service_description: normalizedSource.serviceDescription,
+    event_date: normalizedSource.serviceDate,
+    event_location: normalizedSource.serviceLocation,
+  })
+
+  const body = buildContractBodyFromTemplate(templateData)
 
   const content = serializeContractContent({
-    ...parseContractContent(body),
     body,
     include_quote_document: includeQuoteDocument,
-    source_pdf_path: sourcePdfPath,
-    annexes,
+    source_pdf_path: null,
+    template_data: templateData,
+    annexes: [],
   })
 
   const { data: contract, error: contractError } = await supabase
     .from('contracts')
     .insert({
       contact_id: contactId,
-      quote_id: quoteId,
+      quote_id: latestApprovedQuote.id,
       title,
       content,
       status: 'draft',
       created_by: user.id,
       page_count: pageCount,
-      annexes,
+      annexes: [] as Json,
       signature_ip: getClientIp(request),
     })
     .select('id, contract_number, contact_id')
@@ -206,14 +337,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: contractError?.message ?? 'No fue posible crear el contrato.' }, { status: 400 })
   }
 
+  const annexes: ContractAnnex[] = getContractAnnexTemplates().map(template => {
+    const annexId = crypto.randomUUID()
+    return {
+      id: annexId,
+      title: template.title,
+      storage_path: `contracts/${contract.id}/annexes/${template.key}-${annexId}.pdf`,
+      mime_type: 'application/pdf',
+      requires_signature: template.requires_signature,
+      template_key: template.key,
+      body: template.body,
+      signed_at: null,
+      signed_by: null,
+      signature_data: null,
+    }
+  })
+
+  const updatedContent = serializeContractContent({
+    body,
+    include_quote_document: includeQuoteDocument,
+    source_pdf_path: null,
+    template_data: templateData,
+    annexes,
+  })
+
+  const { error: updateContractError } = await supabase
+    .from('contracts')
+    .update({
+      content: updatedContent,
+      annexes: annexes as unknown as Json,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', contract.id)
+
+  if (updateContractError) {
+    return NextResponse.json({ error: updateContractError.message }, { status: 400 })
+  }
+
   const portalUrl = await getPortalLinkForContact(supabase, contactId, user.id, request)
 
   const { error: activityError } = await supabase.from('activities').insert({
     type: 'stage_change',
     contact_id: contactId,
-    deal_id: quoteDealId,
+    deal_id: latestApprovedQuote.deal_id,
     subject: 'Contrato creado',
-    body: `Se creo el contrato ${contract.contract_number} (${title}).`,
+    body: `Se creo el contrato ${contract.contract_number} desde la cotizacion aprobada ${latestApprovedQuote.quote_number}.`,
     created_by: user.id,
   })
 

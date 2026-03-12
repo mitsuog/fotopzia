@@ -7,6 +7,8 @@ export interface ContractAnnex {
   storage_path: string
   mime_type: string
   requires_signature: boolean
+  template_key?: string | null
+  body?: string | null
   signed_at: string | null
   signed_by: string | null
   signature_data: string | null
@@ -39,6 +41,15 @@ export interface Quote {
   valid_until: string | null
   notes: string | null
   internal_notes: string | null
+  client_entity_type?: 'persona_fisica' | 'persona_moral'
+  client_legal_name?: string | null
+  client_representative_name?: string | null
+  client_representative_role?: string | null
+  client_legal_address?: string | null
+  service_type?: string | null
+  service_description?: string | null
+  service_date?: string | null
+  service_location?: string | null
   approved_signature_data?: string | null
   approved_signature_name?: string | null
   approved_ip?: string | null

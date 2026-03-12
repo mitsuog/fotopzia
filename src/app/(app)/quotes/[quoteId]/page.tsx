@@ -7,6 +7,7 @@ import { ChevronLeft, Mail, Building2, Phone } from 'lucide-react'
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge'
 import { QuoteTotals } from '@/components/quotes/QuoteTotals'
 import { QuoteActions } from '@/components/quotes/QuoteActions'
+import { QuoteContractDataForm } from '@/components/quotes/QuoteContractDataForm'
 import type { QuoteLineItem, QuoteStatus } from '@/types/quotes'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +24,7 @@ export default async function QuoteDetailPage({
     .from('quotes')
     .select(`
       *,
-      contact:contacts(id, first_name, last_name, email, phone, company_name),
+      contact:contacts(id, first_name, last_name, email, phone, company_name, legal_entity_type, legal_name, legal_representative_name, legal_representative_role, legal_address),
       deal:deals(id, title),
       line_items:quote_line_items(*)
     `)
@@ -34,14 +35,91 @@ export default async function QuoteDetailPage({
   if (!data) notFound()
 
   const q = data as typeof data & {
-    contact: { id: string; first_name: string; last_name: string; email: string | null; phone: string | null; company_name: string | null } | null
+    contact: {
+      id: string
+      first_name: string
+      last_name: string
+      email: string | null
+      phone: string | null
+      company_name: string | null
+      legal_entity_type: 'persona_fisica' | 'persona_moral' | null
+      legal_name: string | null
+      legal_representative_name: string | null
+      legal_representative_role: string | null
+      legal_address: string | null
+    } | null
     deal: { id: string; title: string } | null
     line_items: QuoteLineItem[]
     status: QuoteStatus
+    client_entity_type: 'persona_fisica' | 'persona_moral' | null
+    client_legal_name: string | null
+    client_representative_name: string | null
+    client_representative_role: string | null
+    client_legal_address: string | null
+    service_type: string | null
+    service_description: string | null
+    service_date: string | null
+    service_location: string | null
   }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  let canApprove = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    canApprove = profile?.role === 'admin' || profile?.role === 'project_manager'
+  }
+
+  const { data: latestApprovalFlow } = await supabase
+    .from('approval_flows')
+    .select('status')
+    .eq('entity_type', 'quote')
+    .eq('entity_id', q.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const { data: newerQuote } = await supabase
+    .from('quotes')
+    .select('id, quote_number')
+    .eq('contact_id', q.contact_id)
+    .neq('id', q.id)
+    .in('status', ['draft', 'sent', 'viewed', 'approved'])
+    .gt('created_at', q.created_at)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
   const contact = q.contact
   const lineItems: QuoteLineItem[] = q.line_items ?? []
+  const contactFullName = contact ? `${contact.first_name} ${contact.last_name}`.trim() : ''
+  const resolvedEntityType: 'persona_fisica' | 'persona_moral' =
+    contact?.legal_entity_type
+    ?? (q.client_entity_type === 'persona_moral' ? 'persona_moral' : 'persona_fisica')
+  const resolvedLegalName =
+    q.client_legal_name
+    || contact?.legal_name
+    || (resolvedEntityType === 'persona_moral' ? (contact?.company_name || contactFullName) : contactFullName)
+    || ''
+  const resolvedRepresentativeName =
+    q.client_representative_name
+    || contact?.legal_representative_name
+    || (resolvedEntityType === 'persona_fisica' ? resolvedLegalName : '')
+    || ''
+  const resolvedRepresentativeRole =
+    resolvedEntityType === 'persona_moral'
+      ? (q.client_representative_role || contact?.legal_representative_role || '')
+      : ''
+  const resolvedLegalAddress = q.client_legal_address || contact?.legal_address || ''
+  const resolvedServiceType = q.service_type || ''
+  const resolvedServiceDescription = q.service_description || ''
+  const resolvedServiceDate = q.service_date ? String(q.service_date).slice(0, 10) : ''
+  const resolvedServiceLocation = q.service_location || ''
 
   return (
     <div className="space-y-5 pb-10">
@@ -75,13 +153,57 @@ export default async function QuoteDetailPage({
               </p>
             )}
           </div>
-          <QuoteActions quoteId={q.id} status={q.status} dealId={q.deal_id} />
+          <QuoteActions
+            quoteId={q.id}
+            status={q.status}
+            dealId={q.deal_id}
+            approvalStatus={latestApprovalFlow?.status ?? null}
+            canApprove={canApprove}
+            supersededByQuoteNumber={newerQuote?.quote_number ?? null}
+          />
         </div>
       </div>
+
+      {newerQuote && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          Esta cotizacion fue reemplazada por la version mas reciente
+          {' '}
+          <Link href={`/quotes/${newerQuote.id}`} className="font-semibold underline">
+            {newerQuote.quote_number}
+          </Link>
+          . Usa esa version para acciones de firma.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Left: Line items + Notes */}
         <div className="space-y-5 lg:col-span-2">
+          <div className="rounded-xl border border-brand-stone bg-brand-paper p-4">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Datos del servicio</h3>
+            <div className="grid grid-cols-1 gap-2 text-sm text-gray-700 md:grid-cols-2">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-gray-400">Tipo</p>
+                <p className="font-medium text-brand-navy">{resolvedServiceType || 'Pendiente'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-gray-400">Ubicacion</p>
+                <p className="font-medium text-brand-navy">{resolvedServiceLocation || 'Pendiente'}</p>
+              </div>
+              {resolvedServiceDate && (
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-gray-400">Fecha del servicio</p>
+                  <p className="font-medium text-brand-navy">
+                    {format(new Date(resolvedServiceDate), "d 'de' MMMM 'de' yyyy", { locale: es })}
+                  </p>
+                </div>
+              )}
+              <div className="md:col-span-2">
+                <p className="text-[11px] uppercase tracking-wide text-gray-400">Descripcion</p>
+                <p className="whitespace-pre-wrap text-brand-navy">{resolvedServiceDescription || 'Pendiente'}</p>
+              </div>
+            </div>
+          </div>
+
           <div className="overflow-hidden rounded-xl border border-brand-stone bg-brand-paper">
             <div className="border-b border-brand-stone bg-brand-canvas px-4 py-3">
               <h2 className="text-sm font-semibold text-brand-navy">Conceptos</h2>
@@ -158,6 +280,21 @@ export default async function QuoteDetailPage({
               </h3>
               <p className="text-sm text-amber-800 whitespace-pre-wrap">{q.internal_notes}</p>
             </div>
+          )}
+
+          {canApprove && (
+            <QuoteContractDataForm
+              quoteId={q.id}
+              initialEntityType={resolvedEntityType}
+              initialLegalName={resolvedLegalName}
+              initialRepresentativeName={resolvedRepresentativeName}
+              initialRepresentativeRole={resolvedRepresentativeRole}
+              initialLegalAddress={resolvedLegalAddress}
+              initialServiceType={resolvedServiceType}
+              initialServiceDescription={resolvedServiceDescription}
+              initialServiceDate={resolvedServiceDate}
+              initialServiceLocation={resolvedServiceLocation}
+            />
           )}
         </div>
 

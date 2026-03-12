@@ -17,6 +17,17 @@ export type ContractPdfData = {
   annexes: ContractAnnex[]
 }
 
+export type ContractAnnexPdfData = {
+  contract_number: string
+  contract_title: string
+  annex_title: string
+  annex_body: string
+  contact_name: string
+  signer_name: string | null
+  signed_at: string | null
+  signature_data: string | null
+}
+
 export async function renderContractPdfBuffer(contract: ContractPdfData): Promise<Uint8Array> {
   const { renderToBuffer, Document, Page, Text, View, StyleSheet } = await import('@react-pdf/renderer')
 
@@ -98,6 +109,59 @@ export async function renderContractPdfBuffer(contract: ContractPdfData): Promis
         <Text style={styles.footerInitial} fixed>
           Antefirma cliente (requisito por pagina): {initialStamp} - Paginas requeridas: {contract.page_count}
         </Text>
+      </Page>
+    </Document>,
+  )
+
+  return new Uint8Array(pdf)
+}
+
+export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData): Promise<Uint8Array> {
+  const { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer')
+
+  const styles = StyleSheet.create({
+    page: { padding: 38, fontFamily: 'Helvetica', fontSize: 10.5, color: '#1C2B4A', lineHeight: 1.45 },
+    header: { marginBottom: 14, borderBottomWidth: 2, borderBottomColor: '#1C2B4A', paddingBottom: 8 },
+    brand: { fontSize: 17, fontWeight: 'bold', color: '#1C2B4A' },
+    subBrand: { fontSize: 9, color: '#7a7a7a', marginTop: 2 },
+    title: { marginTop: 10, fontSize: 13, fontWeight: 'bold', color: '#1C2B4A' },
+    meta: { marginTop: 3, fontSize: 9.5, color: '#4b5563' },
+    paragraph: { marginBottom: 8, textAlign: 'justify' },
+    signatureBox: { marginTop: 18, borderTopWidth: 1, borderTopColor: '#d1d5db', paddingTop: 8 },
+    signatureImage: { marginTop: 6, width: 180, height: 60, objectFit: 'contain' },
+  })
+
+  const bodyLines = annex.annex_body.split('\n').map((line, index) => (
+    <Text key={`annex-line-${index}`} style={styles.paragraph}>
+      {line.trim() || ' '}
+    </Text>
+  ))
+
+  const pdf = await renderToBuffer(
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.brand}>Fotopzia Mexico</Text>
+          <Text style={styles.subBrand}>Documento anexo del contrato</Text>
+          <Text style={styles.title}>{annex.annex_title}</Text>
+          <Text style={styles.meta}>Contrato: {annex.contract_number}</Text>
+          <Text style={styles.meta}>Referencia: {annex.contract_title}</Text>
+          <Text style={styles.meta}>Cliente: {annex.contact_name}</Text>
+        </View>
+
+        <View>{bodyLines}</View>
+
+        <View style={styles.signatureBox}>
+          <Text style={styles.meta}>
+            {annex.signer_name ? `Firmado por: ${annex.signer_name}` : 'Firma pendiente del cliente'}
+          </Text>
+          <Text style={styles.meta}>
+            {annex.signed_at ? `Fecha: ${new Date(annex.signed_at).toLocaleString('es-MX')}` : 'Sin fecha de firma'}
+          </Text>
+          {annex.signature_data?.startsWith('data:image/') && (
+            <Image src={annex.signature_data} style={styles.signatureImage} />
+          )}
+        </View>
       </Page>
     </Document>,
   )

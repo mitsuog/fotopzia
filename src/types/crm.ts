@@ -8,6 +8,11 @@ export interface Contact {
   last_name: string
   email: string | null
   phone: string | null
+  legal_entity_type?: 'persona_fisica' | 'persona_moral'
+  legal_name?: string | null
+  legal_representative_name?: string | null
+  legal_representative_role?: string | null
+  legal_address?: string | null
   source: string | null
   tags: string[] | null
   assigned_to: string | null

@@ -79,6 +79,21 @@ export async function POST(
     return NextResponse.json({ error: 'El contrato ya esta firmado.' }, { status: 400 })
   }
 
+  const { data: approvalFlow } = await supabase
+    .from('approval_flows')
+    .select('id, status')
+    .eq('entity_type', 'contract')
+    .eq('entity_id', contract.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!approvalFlow || approvalFlow.status !== 'approved') {
+    return NextResponse.json({
+      error: 'El contrato debe estar aprobado internamente antes de enviarse a firma.',
+    }, { status: 400 })
+  }
+
   const nowIso = new Date().toISOString()
   const { error: updateError } = await supabase
     .from('contracts')
@@ -118,7 +133,7 @@ export async function POST(
   const { error: activityError } = await supabase.from('activities').insert({
     type: 'stage_change',
     contact_id: contract.contact_id,
-    deal_id: contract.quote_id ? null : null,
+    deal_id: contract.quote_id,
     subject: 'Contrato enviado a firma',
     body: `Se envio a firma el contrato ${contract.contract_number}.`,
     created_by: user.id,
