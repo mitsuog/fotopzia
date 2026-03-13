@@ -56,7 +56,7 @@ export async function POST(
   }
 
   const pageCount = Number(contract.page_count ?? 1)
-  if (initialsData.length < pageCount || initialsData.some(item => !item.startsWith('data:image/'))) {
+  if (pageCount > 1 && (initialsData.length < pageCount || initialsData.some(item => !item.startsWith('data:image/')))) {
     return NextResponse.json({ error: 'Debes registrar antefirma en cada pagina del contrato.' }, { status: 400 })
   }
 

@@ -26,32 +26,44 @@ export type ContractAnnexPdfData = {
   signer_name: string | null
   signed_at: string | null
   signature_data: string | null
+  template_key?: string | null
+}
+
+function isSectionTitle(line: string): boolean {
+  return (
+    /^[IVXLCDM]+\./i.test(line) ||
+    /^CONTRATO DE PRESTACI/i.test(line) ||
+    /^Firmas$/i.test(line) ||
+    /^(EL PRESTADOR|EL CLIENTE)$/i.test(line) ||
+    /^ANEXO [ABC]\./i.test(line)
+  )
 }
 
 export async function renderContractPdfBuffer(contract: ContractPdfData): Promise<Uint8Array> {
   const { renderToBuffer, Document, Page, Text, View, StyleSheet } = await import('@react-pdf/renderer')
 
   const styles = StyleSheet.create({
-    page: { padding: 38, fontFamily: 'Helvetica', fontSize: 10.5, color: '#1C2B4A', lineHeight: 1.45 },
-    header: { marginBottom: 16, borderBottomWidth: 2, borderBottomColor: '#1C2B4A', paddingBottom: 8 },
-    brand: { fontSize: 18, fontWeight: 'bold', color: '#1C2B4A' },
-    subBrand: { fontSize: 9, color: '#7a7a7a', marginTop: 2 },
-    title: { marginTop: 12, fontSize: 14, fontWeight: 'bold', color: '#1C2B4A' },
-    meta: { marginTop: 6, fontSize: 9.5, color: '#4b5563' },
+    page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#1C2B4A', lineHeight: 1.55 },
+    header: { marginBottom: 18, borderBottomWidth: 2, borderBottomColor: '#1C2B4A', paddingBottom: 10 },
+    brand: { fontSize: 17, fontWeight: 'bold', color: '#1C2B4A' },
+    subBrand: { fontSize: 8.5, color: '#7a7a7a', marginTop: 2 },
+    title: { marginTop: 12, fontSize: 13, fontWeight: 'bold', color: '#1C2B4A' },
+    meta: { marginTop: 5, fontSize: 9, color: '#4b5563' },
     body: { marginTop: 14 },
-    paragraph: { marginBottom: 8, textAlign: 'justify' },
-    sectionTitle: { marginTop: 10, marginBottom: 4, fontWeight: 'bold', color: '#1C2B4A' },
-    annexBox: { marginTop: 16, borderWidth: 1, borderColor: '#D8D3C8', borderRadius: 4, padding: 8 },
-    annexTitle: { fontSize: 10, fontWeight: 'bold', marginBottom: 4 },
-    annexItem: { fontSize: 9.5, marginBottom: 2, color: '#334155' },
-    signatureBox: { marginTop: 20, borderTopWidth: 1, borderTopColor: '#c0c0c0', paddingTop: 8 },
+    paragraph: { marginBottom: 7, textAlign: 'justify', fontSize: 10 },
+    clauseNumber: { marginBottom: 7, textAlign: 'justify', fontSize: 10 },
+    sectionTitle: { marginTop: 14, marginBottom: 6, fontWeight: 'bold', fontSize: 11, color: '#1C2B4A' },
+    signatureBox: { marginTop: 22, borderTopWidth: 1, borderTopColor: '#c0c0c0', paddingTop: 10 },
     signatureName: { fontSize: 10, fontWeight: 'bold' },
+    annexBox: { marginTop: 16, borderWidth: 1, borderColor: '#D8D3C8', borderRadius: 4, padding: 8 },
+    annexTitle: { fontSize: 9.5, fontWeight: 'bold', marginBottom: 4 },
+    annexItem: { fontSize: 9, marginBottom: 2, color: '#334155' },
     footerInitial: {
       position: 'absolute',
       bottom: 12,
-      left: 38,
-      right: 38,
-      fontSize: 8.5,
+      left: 40,
+      right: 40,
+      fontSize: 8,
       color: '#6b7280',
       borderTopWidth: 0.5,
       borderTopColor: '#d1d5db',
@@ -63,8 +75,9 @@ export async function renderContractPdfBuffer(contract: ContractPdfData): Promis
   const renderedParagraphs = lines.map((line, index) => {
     const trimmed = line.trim()
     if (!trimmed) return <Text key={`sp-${index}`} style={styles.paragraph}>{' '}</Text>
-    const isSectionTitle = /^[IVXLCDM]+\./i.test(trimmed) || /^ANEXO/i.test(trimmed)
-    if (isSectionTitle) return <Text key={`st-${index}`} style={styles.sectionTitle}>{trimmed}</Text>
+    if (isSectionTitle(trimmed)) {
+      return <Text key={`st-${index}`} style={styles.sectionTitle}>{trimmed}</Text>
+    }
     return <Text key={`p-${index}`} style={styles.paragraph}>{trimmed}</Text>
   })
 
@@ -92,7 +105,7 @@ export async function renderContractPdfBuffer(contract: ContractPdfData): Promis
           {contract.annexes.length === 0 && <Text style={styles.annexItem}>Sin anexos</Text>}
           {contract.annexes.map((annex, index) => (
             <Text key={annex.id} style={styles.annexItem}>
-              {index + 1}. {annex.title} - {annex.signed_at ? 'Firmado' : 'Pendiente'}
+              {index + 1}. {annex.title} — {annex.signed_at ? 'Firmado' : 'Pendiente de firma'}
             </Text>
           ))}
         </View>
@@ -107,7 +120,7 @@ export async function renderContractPdfBuffer(contract: ContractPdfData): Promis
         </View>
 
         <Text style={styles.footerInitial} fixed>
-          Antefirma cliente (requisito por pagina): {initialStamp} - Paginas requeridas: {contract.page_count}
+          Antefirma cliente (requisito por pagina): {initialStamp} — Paginas requeridas: {contract.page_count}
         </Text>
       </Page>
     </Document>,
@@ -120,22 +133,178 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
   const { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer')
 
   const styles = StyleSheet.create({
-    page: { padding: 38, fontFamily: 'Helvetica', fontSize: 10.5, color: '#1C2B4A', lineHeight: 1.45 },
-    header: { marginBottom: 14, borderBottomWidth: 2, borderBottomColor: '#1C2B4A', paddingBottom: 8 },
-    brand: { fontSize: 17, fontWeight: 'bold', color: '#1C2B4A' },
-    subBrand: { fontSize: 9, color: '#7a7a7a', marginTop: 2 },
-    title: { marginTop: 10, fontSize: 13, fontWeight: 'bold', color: '#1C2B4A' },
-    meta: { marginTop: 3, fontSize: 9.5, color: '#4b5563' },
-    paragraph: { marginBottom: 8, textAlign: 'justify' },
-    signatureBox: { marginTop: 18, borderTopWidth: 1, borderTopColor: '#d1d5db', paddingTop: 8 },
+    page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#1C2B4A', lineHeight: 1.55 },
+    header: { marginBottom: 16, borderBottomWidth: 2, borderBottomColor: '#1C2B4A', paddingBottom: 10 },
+    brand: { fontSize: 16, fontWeight: 'bold', color: '#1C2B4A' },
+    subBrand: { fontSize: 8.5, color: '#7a7a7a', marginTop: 2 },
+    title: { marginTop: 10, fontSize: 12, fontWeight: 'bold', color: '#1C2B4A' },
+    meta: { marginTop: 3, fontSize: 9, color: '#4b5563' },
+    paragraph: { marginBottom: 7, textAlign: 'justify', fontSize: 10 },
+    sectionNote: { marginBottom: 8, fontSize: 9, color: '#6b7280', fontStyle: 'italic' },
+    // Table styles
+    tableHeader: { flexDirection: 'row', backgroundColor: '#1C2B4A', paddingVertical: 5, paddingHorizontal: 4, marginTop: 10 },
+    tableHeaderCell: { color: 'white', fontWeight: 'bold', fontSize: 9 },
+    tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#D8D3C8', paddingVertical: 4, paddingHorizontal: 4 },
+    tableRowAlt: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#D8D3C8', paddingVertical: 4, paddingHorizontal: 4, backgroundColor: '#F9F8F5' },
+    tableCell: { fontSize: 9, color: '#1C2B4A', flex: 1 },
+    tableCellBold: { fontSize: 9, color: '#1C2B4A', flex: 1, fontWeight: 'bold' },
+    // Annexo A specific (2 col)
+    colLabel: { flex: 2 },
+    colValue: { flex: 3 },
+    // Annexo B specific (3 col)
+    colHito: { flex: 3 },
+    colFecha: { flex: 2 },
+    colObs: { flex: 2 },
+    // Notes
+    notesBox: { marginTop: 12, borderWidth: 0.5, borderColor: '#D8D3C8', borderRadius: 3, padding: 8, backgroundColor: '#F9F8F5' },
+    notesText: { fontSize: 9, color: '#4b5563', fontStyle: 'italic' },
+    // Signature
+    signatureBox: { marginTop: 20, borderTopWidth: 1, borderTopColor: '#d1d5db', paddingTop: 10 },
     signatureImage: { marginTop: 6, width: 180, height: 60, objectFit: 'contain' },
   })
 
-  const bodyLines = annex.annex_body.split('\n').map((line, index) => (
-    <Text key={`annex-line-${index}`} style={styles.paragraph}>
-      {line.trim() || ' '}
-    </Text>
-  ))
+  let bodyContent: React.ReactNode
+
+  if (annex.template_key === 'anexo-a') {
+    // Render as 2-column key-value table
+    const lines = annex.annex_body.split('\n')
+    const noteLines: string[] = []
+    const tableRows: Array<{ label: string; value: string; isNote?: boolean }> = []
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+      const colonIdx = trimmed.indexOf(':')
+      if (colonIdx > 0 && colonIdx < 50) {
+        const label = trimmed.slice(0, colonIdx).trim()
+        const value = trimmed.slice(colonIdx + 1).trim()
+        tableRows.push({ label, value })
+      } else {
+        noteLines.push(trimmed)
+      }
+    }
+
+    bodyContent = (
+      <View>
+        {noteLines.length > 0 && (
+          <View style={styles.notesBox}>
+            {noteLines.map((note, i) => (
+              <Text key={`note-${i}`} style={styles.sectionNote}>{note}</Text>
+            ))}
+          </View>
+        )}
+        <View style={styles.tableHeader}>
+          <Text style={[styles.tableHeaderCell, styles.colLabel]}>Campo</Text>
+          <Text style={[styles.tableHeaderCell, styles.colValue]}>Valor</Text>
+        </View>
+        {tableRows.map((row, i) => (
+          <View key={`row-${i}`} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+            <Text style={[styles.tableCellBold, styles.colLabel]}>{row.label}</Text>
+            <Text style={[styles.tableCell, styles.colValue]}>{row.value || '—'}</Text>
+          </View>
+        ))}
+      </View>
+    )
+  } else if (annex.template_key === 'anexo-b') {
+    // Render as 3-column table
+    const lines = annex.annex_body.split('\n')
+    const dataRows: Array<[string, string, string]> = []
+    let headerRow: [string, string, string] | null = null
+    const noteLines: string[] = []
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+      if (trimmed.includes('|')) {
+        const cols = trimmed.split('|').map(c => c.trim())
+        const row: [string, string, string] = [cols[0] ?? '', cols[1] ?? '', cols[2] ?? '']
+        if (!headerRow) {
+          headerRow = row
+        } else {
+          dataRows.push(row)
+        }
+      } else {
+        noteLines.push(trimmed)
+      }
+    }
+
+    bodyContent = (
+      <View>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.tableHeaderCell, styles.colHito]}>{headerRow?.[0] ?? 'Hito'}</Text>
+          <Text style={[styles.tableHeaderCell, styles.colFecha]}>{headerRow?.[1] ?? 'Fecha'}</Text>
+          <Text style={[styles.tableHeaderCell, styles.colObs]}>{headerRow?.[2] ?? 'Observaciones'}</Text>
+        </View>
+        {dataRows.length === 0 && (
+          <View style={styles.tableRow}>
+            <Text style={[styles.tableCell, styles.colHito]}>Sin hitos registrados</Text>
+            <Text style={[styles.tableCell, styles.colFecha]}>—</Text>
+            <Text style={[styles.tableCell, styles.colObs]}>—</Text>
+          </View>
+        )}
+        {dataRows.map((row, i) => (
+          <View key={`row-${i}`} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+            <Text style={[styles.tableCell, styles.colHito]}>{row[0] || '—'}</Text>
+            <Text style={[styles.tableCell, styles.colFecha]}>{row[1] || '—'}</Text>
+            <Text style={[styles.tableCell, styles.colObs]}>{row[2] || '—'}</Text>
+          </View>
+        ))}
+        {noteLines.length > 0 && (
+          <View style={styles.notesBox}>
+            {noteLines.map((note, i) => (
+              <Text key={`note-${i}`} style={styles.notesText}>{note}</Text>
+            ))}
+          </View>
+        )}
+      </View>
+    )
+  } else if (annex.template_key === 'anexo-c') {
+    // Render as authorization form
+    const lines = annex.annex_body.split('\n')
+    const keyValueLines: Array<{ label: string; value: string }> = []
+    const textLines: string[] = []
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+      const colonIdx = trimmed.indexOf(':')
+      if (colonIdx > 0 && colonIdx < 40 && /^[A-Z\s\/]+$/.test(trimmed.slice(0, colonIdx))) {
+        keyValueLines.push({ label: trimmed.slice(0, colonIdx).trim(), value: trimmed.slice(colonIdx + 1).trim() })
+      } else {
+        textLines.push(trimmed)
+      }
+    }
+
+    bodyContent = (
+      <View>
+        {textLines.map((line, i) => (
+          <Text key={`tl-${i}`} style={styles.paragraph}>{line}</Text>
+        ))}
+        {keyValueLines.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderCell, styles.colLabel]}>Campo</Text>
+              <Text style={[styles.tableHeaderCell, styles.colValue]}>Valor</Text>
+            </View>
+            {keyValueLines.map((row, i) => (
+              <View key={`kv-${i}`} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <Text style={[styles.tableCellBold, styles.colLabel]}>{row.label}</Text>
+                <Text style={[styles.tableCell, styles.colValue]}>{row.value || '—'}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    )
+  } else {
+    // Default: render as paragraphs
+    const bodyLines = annex.annex_body.split('\n').map((line, index) => (
+      <Text key={`annex-line-${index}`} style={styles.paragraph}>
+        {line.trim() || ' '}
+      </Text>
+    ))
+    bodyContent = <View>{bodyLines}</View>
+  }
 
   const pdf = await renderToBuffer(
     <Document>
@@ -149,7 +318,7 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
           <Text style={styles.meta}>Cliente: {annex.contact_name}</Text>
         </View>
 
-        <View>{bodyLines}</View>
+        {bodyContent}
 
         <View style={styles.signatureBox}>
           <Text style={styles.meta}>

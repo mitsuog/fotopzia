@@ -61,7 +61,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex items-center justify-center pt-10 pb-2">
           <Image
-            src="/logo_fotopzia.jpg"
+            src="/logo_fotopzia.png"
             alt="Fotopzia"
             width={200}
             height={100}

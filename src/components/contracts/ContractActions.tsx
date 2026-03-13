@@ -178,14 +178,24 @@ export function ContractActions({
       {portalUrl && (
         <div className="space-y-2 rounded-lg border border-brand-stone bg-brand-paper p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Enlace unico para cliente</p>
-          <p className="break-all text-xs text-brand-navy">{portalUrl}</p>
-          <button
-            type="button"
-            onClick={copyPortalLink}
-            className="rounded-md border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy hover:bg-brand-canvas"
-          >
-            Copiar enlace
-          </button>
+          <p className="break-all text-[11px] text-gray-500">{portalUrl}</p>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={portalUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md bg-brand-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-navy-light"
+            >
+              Abrir portal
+            </a>
+            <button
+              type="button"
+              onClick={copyPortalLink}
+              className="rounded-md border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy hover:bg-brand-canvas"
+            >
+              Copiar enlace
+            </button>
+          </div>
         </div>
       )}
 

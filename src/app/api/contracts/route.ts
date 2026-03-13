@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
   buildContractBodyFromTemplate,
@@ -14,6 +14,13 @@ type CreateContractPayload = {
   page_count?: number
   include_quote_document?: boolean
   quote_id?: string | null
+  advance_percentage?: number
+  participants_description?: string
+  special_restrictions?: string
+  include_annexo_c?: boolean
+  annexo_c_authorizations?: string[]
+  annexo_c_restrictions?: string
+  annexo_c_signer_role?: string
 }
 
 type NormalizedContractSource = {
@@ -33,6 +40,59 @@ function getClientIp(request: Request): string | null {
   const forwarded = request.headers.get('x-forwarded-for')
   if (forwarded) return forwarded.split(',')[0]?.trim() ?? null
   return request.headers.get('x-real-ip')
+}
+
+function formatMXN(amount: number): string {
+  return new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+}
+
+function integerToSpanishWords(n: number): string {
+  if (n === 0) return 'cero'
+  if (n < 0) return `menos ${integerToSpanishWords(-n)}`
+
+  const unidades = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
+    'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho', 'diecinueve']
+  const veintis = ['', 'veintiun', 'veintidos', 'veintitres', 'veinticuatro', 'veinticinco', 'veintiseis', 'veintisiete', 'veintiocho', 'veintinueve']
+  const decenas = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa']
+  const centenas = ['', 'cien', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos']
+
+  const parts: string[] = []
+
+  if (n >= 1_000_000) {
+    const m = Math.floor(n / 1_000_000)
+    parts.push(m === 1 ? 'un millon' : `${integerToSpanishWords(m)} millones`)
+    n %= 1_000_000
+  }
+  if (n >= 1000) {
+    const t = Math.floor(n / 1000)
+    parts.push(t === 1 ? 'mil' : `${integerToSpanishWords(t)} mil`)
+    n %= 1000
+  }
+  if (n >= 100) {
+    const c = Math.floor(n / 100)
+    const remainder = n % 100
+    if (n === 100) parts.push('cien')
+    else parts.push(centenas[c])
+    n = remainder
+  }
+  if (n >= 20) {
+    const d = Math.floor(n / 10)
+    const u = n % 10
+    if (n >= 21 && n <= 29) parts.push(veintis[u])
+    else if (u === 0) parts.push(decenas[d])
+    else parts.push(`${decenas[d]} y ${unidades[u]}`)
+  } else if (n > 0) {
+    parts.push(unidades[n])
+  }
+
+  return parts.filter(Boolean).join(' ')
+}
+
+function numberToMXNWords(amount: number): string {
+  const integer = Math.floor(amount)
+  const cents = Math.round((amount - integer) * 100)
+  const centsStr = cents.toString().padStart(2, '0')
+  return `${integerToSpanishWords(integer)} pesos ${centsStr}/100 M.N.`
 }
 
 async function getPortalLinkForContact(
@@ -213,9 +273,16 @@ export async function POST(request: Request) {
   }
 
   const contactId = payload.contact_id?.trim()
-  const pageCount = Number(payload.page_count ?? 1)
+  const pageCount = Number(payload.page_count ?? 5)
   const includeQuoteDocument = Boolean(payload.include_quote_document)
-  const title = 'Contrato de prestacion de servicios Fotopzia Mexico'
+  const advancePercentage = Math.max(1, Math.min(100, Number(payload.advance_percentage ?? 50)))
+  const participantsDescription = payload.participants_description?.trim() ?? ''
+  const specialRestrictions = payload.special_restrictions?.trim() ?? ''
+  const includeAnexoC = Boolean(payload.include_annexo_c)
+  const anexoCAuthorizations = Array.isArray(payload.annexo_c_authorizations) ? payload.annexo_c_authorizations : []
+  const anexoCRestrictions = payload.annexo_c_restrictions?.trim() ?? ''
+  const anexoCSigner = payload.annexo_c_signer_role?.trim() || 'Titular'
+  const title = 'Contrato de prestacion de servicios creativos — Fotopzia Mexico'
 
   if (!contactId) return NextResponse.json({ error: 'Selecciona un contacto.' }, { status: 400 })
   if (!Number.isInteger(pageCount) || pageCount < 1) {
@@ -232,7 +299,7 @@ export async function POST(request: Request) {
 
   const { data: latestApprovedQuote, error: latestQuoteError } = await supabase
     .from('quotes')
-    .select('id, deal_id, quote_number, title, approved_at, updated_at, client_entity_type, client_legal_name, client_representative_name, client_representative_role, client_legal_address, service_type, service_description, service_date, service_location')
+    .select('id, deal_id, quote_number, title, total, currency, approved_at, updated_at, client_entity_type, client_legal_name, client_representative_name, client_representative_role, client_legal_address, service_type, service_description, service_date, service_location')
     .eq('contact_id', contactId)
     .eq('status', 'approved')
     .order('approved_at', { ascending: false })
@@ -250,16 +317,75 @@ export async function POST(request: Request) {
     }, { status: 400 })
   }
 
-  const { data: lineItems } = await supabase
+  const lineItemsResult = await supabase
     .from('quote_line_items')
     .select('description')
     .eq('quote_id', latestApprovedQuote.id)
     .order('sort_order', { ascending: true })
 
+  const lineItems = lineItemsResult.data ?? []
+
+  // Fetch project deliverables directly
+  const { data: activeProject } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('contact_id', contactId)
+    .neq('stage', 'cerrado')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  let deliverableRows: Array<{ milestone: string; date: string; notes: string }> = []
+
+  if (activeProject?.id) {
+    const { data: pdRows } = await supabase
+      .from('project_deliverables')
+      .select('name, due_at, status')
+      .eq('project_id', activeProject.id)
+      .order('due_at', { ascending: true })
+      .limit(10)
+
+    if (pdRows && pdRows.length > 0) {
+      deliverableRows = pdRows.map(pd => {
+        const name = typeof pd.name === 'string' ? pd.name : ''
+        const dueAt = typeof pd.due_at === 'string' ? pd.due_at : null
+        const status = typeof pd.status === 'string' ? pd.status : ''
+        return {
+          milestone: name,
+          date: dueAt ? new Date(dueAt).toLocaleDateString('es-MX') : 'Por definir',
+          notes: status,
+        }
+      })
+    }
+  }
+
+  // Fallback to line items if no project deliverables
+  if (deliverableRows.length === 0 && lineItems.length > 0) {
+    deliverableRows = lineItems
+      .filter(li => li.description)
+      .map(li => ({
+        milestone: li.description ?? '',
+        date: latestApprovedQuote.service_date
+          ? new Date(latestApprovedQuote.service_date).toLocaleDateString('es-MX')
+          : 'Por definir',
+        notes: '',
+      }))
+  }
+
+  // Compute financial amounts
+  const totalRaw = Number(latestApprovedQuote.total ?? 0)
+  const advanceRaw = totalRaw * (advancePercentage / 100)
+  const balanceRaw = totalRaw - advanceRaw
+
+  const totalAmount = formatMXN(totalRaw)
+  const totalAmountText = numberToMXNWords(totalRaw)
+  const advanceAmount = formatMXN(advanceRaw)
+  const balanceAmount = formatMXN(balanceRaw)
+
   const normalizedSource = resolveContractSourceData({
     quote: latestApprovedQuote,
     contact,
-    lineItems: lineItems ?? [],
+    lineItems,
   })
 
   if (normalizedSource.missingFields.length > 0) {
@@ -305,6 +431,18 @@ export async function POST(request: Request) {
     service_description: normalizedSource.serviceDescription,
     event_date: normalizedSource.serviceDate,
     event_location: normalizedSource.serviceLocation,
+    total_amount: totalAmount,
+    total_amount_text: totalAmountText,
+    advance_percentage: advancePercentage,
+    advance_amount: advanceAmount,
+    balance_amount: balanceAmount,
+    participants_description: participantsDescription,
+    special_restrictions: specialRestrictions,
+    deliverables: deliverableRows,
+    include_annexo_c: includeAnexoC,
+    annexo_c_authorizations: anexoCAuthorizations,
+    annexo_c_restrictions: anexoCRestrictions,
+    annexo_c_signer_role: anexoCSigner,
   })
 
   const body = buildContractBodyFromTemplate(templateData)
@@ -337,7 +475,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: contractError?.message ?? 'No fue posible crear el contrato.' }, { status: 400 })
   }
 
-  const annexes: ContractAnnex[] = getContractAnnexTemplates().map(template => {
+  const annexTemplates = getContractAnnexTemplates(templateData)
+
+  const annexes: ContractAnnex[] = annexTemplates.map(template => {
     const annexId = crypto.randomUUID()
     return {
       id: annexId,
@@ -381,7 +521,7 @@ export async function POST(request: Request) {
     contact_id: contactId,
     deal_id: latestApprovedQuote.deal_id,
     subject: 'Contrato creado',
-    body: `Se creo el contrato ${contract.contract_number} desde la cotizacion aprobada ${latestApprovedQuote.quote_number}.`,
+    body: `Se creo el contrato ${contract.contract_number} con ${annexes.length} anexo(s) desde la cotizacion aprobada ${latestApprovedQuote.quote_number}.`,
     created_by: user.id,
   })
 

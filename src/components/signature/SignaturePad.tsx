@@ -22,13 +22,17 @@ export function SignaturePad({
   const [hasStroke, setHasStroke] = useState(Boolean(value))
 
   useEffect(() => {
-    if (!value || !canvasRef.current) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const context = canvas.getContext('2d')
+    if (!context) return
+    if (!value) {
+      context.clearRect(0, 0, canvas.width, canvas.height)
+      setHasStroke(false)
+      return
+    }
     const image = new Image()
     image.onload = () => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const context = canvas.getContext('2d')
-      if (!context) return
       context.clearRect(0, 0, canvas.width, canvas.height)
       context.drawImage(image, 0, 0, canvas.width, canvas.height)
       setHasStroke(true)
@@ -41,8 +45,8 @@ export function SignaturePad({
     if (!canvas) return { x: 0, y: 0 }
     const rect = canvas.getBoundingClientRect()
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: (event.clientX - rect.left) * (canvas.width / rect.width),
+      y: (event.clientY - rect.top) * (canvas.height / rect.height),
     }
   }
 

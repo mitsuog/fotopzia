@@ -28,7 +28,11 @@
       "Bash(sed 's/:$//')",
       "Bash(find \"E:/Fotopzia/fotopzia/src/app/\\(app\\)\" -type d | sort)",
       "Bash(find \"E:/Fotopzia/fotopzia/src\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.css\" -o -name \"*.json\" \\\\\\) ! -path \"./.next/*\" ! -path \"./node_modules/*\" 2>/dev/null | sort)",
-      "Bash(find /e/Fotopzia/fotopzia/src -type f \\\\\\( -name \"*admin*\" -o -name \"*Admin*\" \\\\\\) 2>/dev/null | head -20)"
+      "Bash(find /e/Fotopzia/fotopzia/src -type f \\\\\\( -name \"*admin*\" -o -name \"*Admin*\" \\\\\\) 2>/dev/null | head -20)",
+      "Bash(find \"E:/Fotopzia/fotopzia\" -type f \\\\\\( -name \"*contrato*\" -o -name \"*contract*\" \\\\\\) 2>/dev/null | grep -v node_modules | head -20)",
+      "Bash(python -c \"\nimport re, sys\nsys.stdout = open\\(sys.stdout.fileno\\(\\), mode='w', encoding='utf-8', buffering=1\\)\nwith open\\('E:/Fotopzia/fotopzia/Contrato_Fotopzia.pdf', 'rb'\\) as f:\n    data = f.read\\(\\)\ntexts = re.findall\\(rb'BT\\(.+?\\)ET', data, re.DOTALL\\)\nresult = []\nfor t in texts:\n    parts = re.findall\\(rb'\\\\\\(\\([^\\)]*\\)\\\\\\)', t\\)\n    for p in parts:\n        try:\n            result.append\\(p.decode\\('latin-1'\\)\\)\n        except:\n            pass\nprint\\(' '.join\\(result\\)[:10000]\\)\n\")",
+      "Bash(python -c \"import pypdf; r=pypdf.PdfReader\\('E:/Fotopzia/fotopzia/Contrato_Fotopzia.pdf'\\); [print\\(p.extract_text\\(\\)\\) for p in r.pages]\" 2>&1 | head -200)",
+      "Bash(cd \"E:/Fotopzia/fotopzia\" && npx next build 2>&1 | tail -20)"
     ]
   }
 }
