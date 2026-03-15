@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Activity, ActivityType } from '@/types/crm'
 
-export function useActivities(contactId?: string) {
+export function useActivities(contactId?: string, initialData?: Activity[]) {
   return useQuery({
     queryKey: ['activities', contactId],
+    initialData,
     queryFn: async () => {
       const supabase = createClient()
       let query = supabase
@@ -67,7 +68,7 @@ export function useCreateActivity() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: payload.subject?.trim() || (payload.type === 'call' ? 'Llamada con cliente' : 'Reunión con cliente'),
+            title: payload.subject?.trim() || (payload.type === 'call' ? 'Llamada con cliente' : 'Reunion con cliente'),
             description: payload.body?.trim() || null,
             contact_id: payload.contact_id,
             deal_id: payload.deal_id ?? null,
@@ -112,6 +113,27 @@ export function useCreateActivity() {
       if (variables.deal_id) {
         queryClient.invalidateQueries({ queryKey: ['activities', 'deal', variables.deal_id] })
       }
+    },
+  })
+}
+
+export function useCompleteActivity() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ activityId }: { activityId: string; contactId?: string }) => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('activities')
+        .update({ completed: true, completed_at: new Date().toISOString() })
+        .eq('id', activityId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
+      if (vars.contactId) queryClient.invalidateQueries({ queryKey: ['activities', vars.contactId] })
     },
   })
 }

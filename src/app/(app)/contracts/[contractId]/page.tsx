@@ -79,6 +79,18 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
   const parsedContent = parseContractContent(contract.content, toContractAnnexes(contract.annexes))
   const td = parsedContent.template_data
 
+  // Find linked project via contact_id
+  const { data: linkedProject } = contract.contact_id
+    ? await supabase
+        .from('projects')
+        .select('id, title, stage, due_date')
+        .eq('contact_id', contract.contact_id)
+        .neq('stage', 'cerrado')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null }
+
   const activeToken = await supabase
     .from('client_portal_tokens')
     .select('token, expires_at')
@@ -264,6 +276,14 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
             zipUrl={zipUrl}
             approvalStatus={latestApprovalFlow?.status ?? null}
             canApprove={canApprove}
+            linkedProject={linkedProject ? {
+              id: linkedProject.id as string,
+              title: linkedProject.title as string,
+              stage: linkedProject.stage as string,
+              due_date: linkedProject.due_date as string | null,
+            } : null}
+            contactId={contract.contact_id}
+            projectTitle={quote?.title ?? contract.title}
           />
 
           <div className="rounded-xl border border-brand-stone bg-white p-4 text-xs text-gray-700 space-y-1.5">

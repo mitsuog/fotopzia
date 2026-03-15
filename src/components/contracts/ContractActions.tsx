@@ -1,7 +1,16 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { WorkflowCommentDialog } from '@/components/ui/WorkflowCommentDialog'
+
+interface LinkedProject {
+  id: string
+  title: string
+  stage: string
+  due_date: string | null
+}
 
 interface ContractActionsProps {
   contractId: string
@@ -10,6 +19,9 @@ interface ContractActionsProps {
   zipUrl?: string | null
   approvalStatus?: string | null
   canApprove: boolean
+  linkedProject?: LinkedProject | null
+  contactId?: string
+  projectTitle?: string
 }
 
 export function ContractActions({
@@ -19,7 +31,11 @@ export function ContractActions({
   zipUrl,
   approvalStatus,
   canApprove,
+  linkedProject,
+  contactId,
+  projectTitle,
 }: ContractActionsProps) {
+  const router = useRouter()
   const [portalUrl, setPortalUrl] = useState(initialPortalUrl ?? '')
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -78,6 +94,26 @@ export function ContractActions({
     setSuccess('Enlace de firma copiado al portapapeles.')
   }
 
+  async function handleCreateProject() {
+    if (!contactId) return
+    setLoadingAction('create_project')
+    setError(null)
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact_id: contactId, title: projectTitle ?? 'Proyecto sin título' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'No fue posible crear el proyecto.')
+      router.push(`/projects/${json.data.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear proyecto')
+    } finally {
+      setLoadingAction(null)
+    }
+  }
+
   const isApprovedFlow = approvalStatus === 'approved'
   const isInApproval = approvalStatus === 'in_progress' || approvalStatus === 'pending'
   const canReturnToReview = status === 'sent' || status === 'viewed' || isApprovedFlow
@@ -85,6 +121,41 @@ export function ContractActions({
   return (
     <div className="space-y-3 rounded-xl border border-brand-stone bg-white p-4">
       <h3 className="text-sm font-semibold text-brand-navy">Acciones de contrato</h3>
+
+      {/* Project link */}
+      <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Proyecto</p>
+        {linkedProject ? (
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium text-brand-navy">{linkedProject.title}</p>
+            {linkedProject.due_date && (
+              <p className="text-xs text-gray-500">
+                Vence: {new Date(linkedProject.due_date).toLocaleDateString('es-MX')}
+              </p>
+            )}
+            <Link
+              href={`/projects/${linkedProject.id}`}
+              className="flex w-full items-center justify-center rounded-lg bg-brand-navy px-3 py-2 text-xs font-semibold text-white hover:bg-brand-navy-light"
+            >
+              Ver Proyecto →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <p className="text-xs text-gray-500">No hay proyecto activo para este contacto.</p>
+            {(status === 'signed' || status === 'sent' || status === 'approved') && contactId && (
+              <button
+                type="button"
+                onClick={handleCreateProject}
+                disabled={Boolean(loadingAction)}
+                className="flex w-full items-center justify-center rounded-lg border border-brand-navy px-3 py-2 text-xs font-semibold text-brand-navy hover:bg-brand-canvas disabled:opacity-50"
+              >
+                {loadingAction === 'create_project' ? 'Creando...' : '+ Iniciar Proyecto'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <a

@@ -32,7 +32,28 @@
       "Bash(find \"E:/Fotopzia/fotopzia\" -type f \\\\\\( -name \"*contrato*\" -o -name \"*contract*\" \\\\\\) 2>/dev/null | grep -v node_modules | head -20)",
       "Bash(python -c \"\nimport re, sys\nsys.stdout = open\\(sys.stdout.fileno\\(\\), mode='w', encoding='utf-8', buffering=1\\)\nwith open\\('E:/Fotopzia/fotopzia/Contrato_Fotopzia.pdf', 'rb'\\) as f:\n    data = f.read\\(\\)\ntexts = re.findall\\(rb'BT\\(.+?\\)ET', data, re.DOTALL\\)\nresult = []\nfor t in texts:\n    parts = re.findall\\(rb'\\\\\\(\\([^\\)]*\\)\\\\\\)', t\\)\n    for p in parts:\n        try:\n            result.append\\(p.decode\\('latin-1'\\)\\)\n        except:\n            pass\nprint\\(' '.join\\(result\\)[:10000]\\)\n\")",
       "Bash(python -c \"import pypdf; r=pypdf.PdfReader\\('E:/Fotopzia/fotopzia/Contrato_Fotopzia.pdf'\\); [print\\(p.extract_text\\(\\)\\) for p in r.pages]\" 2>&1 | head -200)",
-      "Bash(cd \"E:/Fotopzia/fotopzia\" && npx next build 2>&1 | tail -20)"
+      "Bash(cd \"E:/Fotopzia/fotopzia\" && npx next build 2>&1 | tail -20)",
+      "Bash(find \"E:/Fotopzia/fotopzia/src\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) | xargs grep -l \"notes\\\\|seguimiento\\\\|follow\" 2>/dev/null | head -20)",
+      "Bash(ls -la \"E:/Fotopzia/fotopzia/\" | grep -E \"\\\\.\\(md|txt\\)$\")",
+      "Bash(cat \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/crm/kanban/page.tsx\" | head -100)",
+      "Bash(cat \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/crm/list/page.tsx\" | head -100)",
+      "Bash(cat \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/crm/[contactId]/page.tsx\" | head -150)",
+      "Bash(cat \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/crm-calendar/page.tsx\" | head -50)",
+      "Bash(cd \"E:/Fotopzia/fotopzia\" && grep -n \"complete\\\\|PATCH\\\\|activities\" src/app/api/crm-calendar/events/\\\\[id\\\\]/route.ts | head -30)",
+      "Bash(mkdir -p E:/Fotopzia/fotopzia/public/fonts && curl -L \"https://fonts.gstatic.com/s/roboto/v47/KFOmCnqEu92Fr1Me5Q.ttf\" -o \"E:/Fotopzia/fotopzia/public/fonts/Roboto-Regular.ttf\" && curl -L \"https://fonts.gstatic.com/s/roboto/v47/KFOlCnqEu92Fr1MmWUlfBBc9.ttf\" -o \"E:/Fotopzia/fotopzia/public/fonts/Roboto-Bold.ttf\" && ls -lh E:/Fotopzia/fotopzia/public/fonts/)",
+      "Bash(file \"E:/Fotopzia/fotopzia/public/fonts/Roboto-Bold.ttf\" && head -c 20 \"E:/Fotopzia/fotopzia/public/fonts/Roboto-Bold.ttf\" | xxd)",
+      "Bash(curl -s \"https://fonts.googleapis.com/css2?family=Roboto:wght@400;700\" | grep -o \"https://fonts.gstatic.com[^\\)]*\")",
+      "Bash(curl -s \"https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap\" | grep \"ttf\")",
+      "Bash(curl -L \"https://fonts.gstatic.com/s/roboto/v51/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbWmT.ttf\" -o \"E:/Fotopzia/fotopzia/public/fonts/Roboto-Regular.ttf\" && curl -L \"https://fonts.gstatic.com/s/roboto/v51/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWuYjammT.ttf\" -o \"E:/Fotopzia/fotopzia/public/fonts/Roboto-Bold.ttf\" && ls -lh E:/Fotopzia/fotopzia/public/fonts/ && file E:/Fotopzia/fotopzia/public/fonts/Roboto-Bold.ttf)",
+      "Bash(ls -la \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/\")",
+      "Bash(ls -la \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/contracts/\")",
+      "Bash(ls -la \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/projects/\")",
+      "Bash(ls -la \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/contracts/[contractId]/\")",
+      "Bash(find \"E:/Fotopzia/fotopzia\" -path \"*projects*\" -type f -name \"*.tsx\" -o -path \"*projects*\" -type f -name \"*.ts\" 2>/dev/null | head -20)",
+      "Bash(ls -la \"E:/Fotopzia/fotopzia/src/app/\\(app\\)/contracts/new/\")",
+      "Bash(find \"E:/Fotopzia/fotopzia/src\" -type f -name \"*.ts\" -o -name \"*.tsx\" | xargs grep -l \"from.*deal\\\\|import.*Deal\" | head -10)",
+      "Bash(grep -r \"project_id\\\\|projectId\" \"E:/Fotopzia/fotopzia/src\" --include=\"*.ts\" --include=\"*.tsx\" 2>/dev/null | head -20)",
+      "Bash(find \"/e/Fotopzia/fotopzia/src/app/api/projects\" -type f -name \"*.ts\" -o -name \"*.tsx\" 2>/dev/null | head -20)"
     ]
   }
 }

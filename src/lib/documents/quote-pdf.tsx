@@ -1,5 +1,8 @@
 /* @jsxImportSource react */
 
+import { ensurePdfFontsRegistered } from './pdf-fonts'
+import { buildDocumentHeader } from './pdf-header'
+
 type QuotePdfContact = {
   first_name: string
   last_name: string
@@ -32,14 +35,11 @@ export type QuotePdfData = {
 }
 
 export async function renderQuotePdfBuffer(quote: QuotePdfData): Promise<Uint8Array> {
+  await ensurePdfFontsRegistered()
   const { renderToBuffer, Document, Page, Text, View, StyleSheet } = await import('@react-pdf/renderer')
 
   const styles = StyleSheet.create({
-    page: { padding: 40, fontFamily: 'Helvetica', fontSize: 11, color: '#1C2B4A' },
-    header: { marginBottom: 24 },
-    title: { fontSize: 20, fontWeight: 'bold', color: '#1C2B4A' },
-    subtitle: { fontSize: 11, color: '#666', marginTop: 4 },
-    quoteNum: { fontSize: 10, color: '#C49A2A', marginTop: 2 },
+    page: { padding: 40, fontFamily: 'Roboto', fontSize: 11, color: '#1C2B4A' },
     section: { marginBottom: 16 },
     tableHeader: {
       flexDirection: 'row',
@@ -61,6 +61,7 @@ export async function renderQuotePdfBuffer(quote: QuotePdfData): Promise<Uint8Ar
     totalLabel: { color: '#666' },
     bold: { fontWeight: 'bold' },
     footer: { marginTop: 20, fontSize: 9.5, color: '#666' },
+    meta: { marginTop: 3, fontSize: 9, color: '#4b5563' },
   })
 
   const contact = quote.contact
@@ -70,16 +71,20 @@ export async function renderQuotePdfBuffer(quote: QuotePdfData): Promise<Uint8Ar
   const pdf = await renderToBuffer(
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{quote.title}</Text>
-          <Text style={styles.subtitle}>
-            {contactName}
-            {contact?.company_name ? ` - ${contact.company_name}` : ''}
-          </Text>
-          <Text style={styles.quoteNum}>{quote.quote_number}</Text>
-        </View>
+        {buildDocumentHeader({ View, Text, StyleSheet }, {
+          docType: 'COTIZACION',
+          docNumber: quote.quote_number,
+          clientName: contactName,
+        })}
+        {contact?.company_name && (
+          <Text style={styles.meta}>Empresa: {contact.company_name}</Text>
+        )}
+        {contact?.email && (
+          <Text style={styles.meta}>Email: {contact.email}</Text>
+        )}
+        <Text style={[styles.meta, { marginTop: 8, fontWeight: 'bold', fontSize: 11 }]}>{quote.title}</Text>
 
-        <View style={styles.section}>
+        <View style={[styles.section, { marginTop: 16 }]}>
           <View style={styles.tableHeader}>
             <Text style={[styles.cell, styles.bold]}>Descripcion</Text>
             <Text style={[styles.cellRight, styles.bold]}>Cant.</Text>

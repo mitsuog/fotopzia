@@ -1,6 +1,8 @@
 /* @jsxImportSource react */
 
 import type { ContractAnnex } from '@/types/quotes'
+import { ensurePdfFontsRegistered } from './pdf-fonts'
+import { buildDocumentHeader } from './pdf-header'
 
 export type ContractPdfData = {
   id: string
@@ -40,14 +42,11 @@ function isSectionTitle(line: string): boolean {
 }
 
 export async function renderContractPdfBuffer(contract: ContractPdfData): Promise<Uint8Array> {
+  await ensurePdfFontsRegistered()
   const { renderToBuffer, Document, Page, Text, View, StyleSheet } = await import('@react-pdf/renderer')
 
   const styles = StyleSheet.create({
-    page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#1C2B4A', lineHeight: 1.55 },
-    header: { marginBottom: 18, borderBottomWidth: 2, borderBottomColor: '#1C2B4A', paddingBottom: 10 },
-    brand: { fontSize: 17, fontWeight: 'bold', color: '#1C2B4A' },
-    subBrand: { fontSize: 8.5, color: '#7a7a7a', marginTop: 2 },
-    title: { marginTop: 12, fontSize: 13, fontWeight: 'bold', color: '#1C2B4A' },
+    page: { padding: 40, fontFamily: 'Roboto', fontSize: 10, color: '#1C2B4A', lineHeight: 1.55 },
     meta: { marginTop: 5, fontSize: 9, color: '#4b5563' },
     body: { marginTop: 14 },
     paragraph: { marginBottom: 7, textAlign: 'justify', fontSize: 10 },
@@ -88,15 +87,13 @@ export async function renderContractPdfBuffer(contract: ContractPdfData): Promis
   const pdf = await renderToBuffer(
     <Document>
       <Page size="A4" style={styles.page} wrap>
-        <View style={styles.header}>
-          <Text style={styles.brand}>Fotopzia Mexico</Text>
-          <Text style={styles.subBrand}>Fotografia y video profesional</Text>
-          <Text style={styles.title}>{contract.title}</Text>
-          <Text style={styles.meta}>Contrato: {contract.contract_number}</Text>
-          <Text style={styles.meta}>Cliente: {contract.contact_name}</Text>
-          {contract.contact_email && <Text style={styles.meta}>Email: {contract.contact_email}</Text>}
-          {contract.quote_number && <Text style={styles.meta}>Cotizacion relacionada: {contract.quote_number}</Text>}
-        </View>
+        {buildDocumentHeader({ View, Text, StyleSheet }, {
+          docType: 'CONTRATO',
+          docNumber: `Contrato: ${contract.contract_number}`,
+          clientName: contract.contact_name,
+        })}
+        {contract.contact_email && <Text style={styles.meta}>Email: {contract.contact_email}</Text>}
+        {contract.quote_number && <Text style={styles.meta}>Cotizacion relacionada: {contract.quote_number}</Text>}
 
         <View style={styles.body}>{renderedParagraphs}</View>
 
@@ -130,14 +127,11 @@ export async function renderContractPdfBuffer(contract: ContractPdfData): Promis
 }
 
 export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData): Promise<Uint8Array> {
+  await ensurePdfFontsRegistered()
   const { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer')
 
   const styles = StyleSheet.create({
-    page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#1C2B4A', lineHeight: 1.55 },
-    header: { marginBottom: 16, borderBottomWidth: 2, borderBottomColor: '#1C2B4A', paddingBottom: 10 },
-    brand: { fontSize: 16, fontWeight: 'bold', color: '#1C2B4A' },
-    subBrand: { fontSize: 8.5, color: '#7a7a7a', marginTop: 2 },
-    title: { marginTop: 10, fontSize: 12, fontWeight: 'bold', color: '#1C2B4A' },
+    page: { padding: 40, fontFamily: 'Roboto', fontSize: 10, color: '#1C2B4A', lineHeight: 1.55 },
     meta: { marginTop: 3, fontSize: 9, color: '#4b5563' },
     paragraph: { marginBottom: 7, textAlign: 'justify', fontSize: 10 },
     sectionNote: { marginBottom: 8, fontSize: 9, color: '#6b7280', fontStyle: 'italic' },
@@ -166,10 +160,9 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
   let bodyContent: React.ReactNode
 
   if (annex.template_key === 'anexo-a') {
-    // Render as 2-column key-value table
     const lines = annex.annex_body.split('\n')
     const noteLines: string[] = []
-    const tableRows: Array<{ label: string; value: string; isNote?: boolean }> = []
+    const tableRows: Array<{ label: string; value: string }> = []
 
     for (const line of lines) {
       const trimmed = line.trim()
@@ -206,7 +199,6 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
       </View>
     )
   } else if (annex.template_key === 'anexo-b') {
-    // Render as 3-column table
     const lines = annex.annex_body.split('\n')
     const dataRows: Array<[string, string, string]> = []
     let headerRow: [string, string, string] | null = null
@@ -259,7 +251,6 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
       </View>
     )
   } else if (annex.template_key === 'anexo-c') {
-    // Render as authorization form
     const lines = annex.annex_body.split('\n')
     const keyValueLines: Array<{ label: string; value: string }> = []
     const textLines: string[] = []
@@ -297,7 +288,6 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
       </View>
     )
   } else {
-    // Default: render as paragraphs
     const bodyLines = annex.annex_body.split('\n').map((line, index) => (
       <Text key={`annex-line-${index}`} style={styles.paragraph}>
         {line.trim() || ' '}
@@ -309,14 +299,14 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
   const pdf = await renderToBuffer(
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.brand}>Fotopzia Mexico</Text>
-          <Text style={styles.subBrand}>Documento anexo del contrato</Text>
-          <Text style={styles.title}>{annex.annex_title}</Text>
-          <Text style={styles.meta}>Contrato: {annex.contract_number}</Text>
-          <Text style={styles.meta}>Referencia: {annex.contract_title}</Text>
-          <Text style={styles.meta}>Cliente: {annex.contact_name}</Text>
-        </View>
+        {buildDocumentHeader({ View, Text, StyleSheet }, {
+          docType: 'ANEXO',
+          docNumber: `Contrato: ${annex.contract_number}`,
+          clientName: annex.contact_name,
+          subtitle: 'Documento anexo del contrato',
+        })}
+        <Text style={styles.meta}>Referencia: {annex.contract_title}</Text>
+        <Text style={[styles.meta, { marginTop: 8, fontWeight: 'bold' }]}>{annex.annex_title}</Text>
 
         {bodyContent}
 

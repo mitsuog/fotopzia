@@ -1,4 +1,5 @@
-﻿import { PageHeader } from '@/components/layout/PageHeader'
+﻿import Link from 'next/link'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { createClient } from '@/lib/supabase/server'
 
 type ProjectRow = {
@@ -7,6 +8,28 @@ type ProjectRow = {
   stage: string
   due_date: string | null
   contact: { first_name: string; last_name: string } | null
+}
+
+const STAGE_COLORS: Record<string, string> = {
+  preproduccion:  'bg-gray-100 text-gray-600',
+  produccion:     'bg-blue-100 text-blue-700',
+  postproduccion: 'bg-purple-100 text-purple-700',
+  entrega:        'bg-amber-100 text-amber-700',
+  cerrado:        'bg-emerald-100 text-emerald-700',
+}
+const STAGE_LABELS: Record<string, string> = {
+  preproduccion:  'Pre-producción',
+  produccion:     'Producción',
+  postproduccion: 'Post-producción',
+  entrega:        'Entrega',
+  cerrado:        'Cerrado',
+}
+function StageBadge({ stage }: { stage: string }) {
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STAGE_COLORS[stage] ?? 'bg-gray-100 text-gray-600'}`}>
+      {STAGE_LABELS[stage] ?? stage.replace('_', ' ')}
+    </span>
+  )
 }
 
 type TaskRow = { project_id: string; status: string }
@@ -69,22 +92,30 @@ export default async function ProjectsPage() {
                 const deliverableStats = deliverableMap.get(project.id) ?? { total: 0, delivered: 0 }
 
                 return (
-                  <tr key={project.id} className="border-b border-brand-stone/50 last:border-0">
+                  <tr key={project.id} className="border-b border-brand-stone/50 last:border-0 hover:bg-brand-canvas/40 cursor-pointer transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-brand-navy">{project.title}</p>
-                      <p className="mt-0.5 text-xs text-gray-500">
-                        {project.contact ? `${project.contact.first_name} ${project.contact.last_name}` : 'Sin contacto'}
-                      </p>
+                      <Link href={`/projects/${project.id}`} className="block">
+                        <p className="font-medium text-brand-navy hover:text-brand-gold">{project.title}</p>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          {project.contact ? `${project.contact.first_name} ${project.contact.last_name}` : 'Sin contacto'}
+                        </p>
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600">
-                        {project.stage.replace('_', ' ')}
-                      </span>
+                      <Link href={`/projects/${project.id}`} className="block">
+                        <StageBadge stage={project.stage} />
+                      </Link>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{taskStats.done}/{taskStats.total}</td>
-                    <td className="px-4 py-3 text-gray-700">{deliverableStats.delivered}/{deliverableStats.total}</td>
+                    <td className="px-4 py-3 text-gray-700">
+                      <Link href={`/projects/${project.id}`} className="block">{taskStats.done}/{taskStats.total}</Link>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      <Link href={`/projects/${project.id}`} className="block">{deliverableStats.delivered}/{deliverableStats.total}</Link>
+                    </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {project.due_date ? new Date(project.due_date).toLocaleDateString('es-MX') : '-'}
+                      <Link href={`/projects/${project.id}`} className="block">
+                        {project.due_date ? new Date(project.due_date).toLocaleDateString('es-MX') : '-'}
+                      </Link>
                     </td>
                   </tr>
                 )

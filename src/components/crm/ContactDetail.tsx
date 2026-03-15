@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Mail, Phone, Building2, Tag, Pencil, FileText, ScrollText, CalendarClock, ClipboardList, FolderKanban } from 'lucide-react'
+import { Mail, Phone, Building2, Tag, Pencil, FileText, ScrollText, CalendarClock, ClipboardList, FolderKanban, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ActivityFeed } from './ActivityFeed'
+import { InlineActivityForm } from './InlineActivityForm'
 import { EditContactSheet } from './EditContactSheet'
+import { useActivities, useCompleteActivity } from '@/hooks/useActivities'
 import type { Contact, Deal, Activity, DealStage } from '@/types/crm'
 
 const STAGE_LABELS: Record<DealStage, string> = {
@@ -161,11 +163,15 @@ export function ContactDetail({
   const [activeTab, setActiveTab] = useState<TabId>('budgets')
   const [currentContact, setCurrentContact] = useState<Contact>(contact)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [showActivityForm, setShowActivityForm] = useState(false)
+
+  const { data: activities = initialActivities } = useActivities(currentContact.id, initialActivities)
+  const completeActivity = useCompleteActivity()
 
   const fullName = `${currentContact.first_name} ${currentContact.last_name}`
   const initials = getInitials(currentContact.first_name, currentContact.last_name)
   const avatarColor = getAvatarColor(fullName)
-  const activityTasks = initialActivities.filter(activity => activity.type === 'task' && !activity.completed)
+  const activityTasks = activities.filter(activity => activity.type === 'task' && !activity.completed)
   const openProjects = projects.filter(project => project.stage !== 'cerrado')
   const totalTaskCount =
     activityTasks.length
@@ -395,9 +401,37 @@ export function ContactDetail({
     )
   }
 
+  function renderActivitiesTab() {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Historial de actividades</p>
+          <button
+            type="button"
+            onClick={() => setShowActivityForm(v => !v)}
+            className="inline-flex items-center gap-1 rounded-lg border border-brand-stone bg-white px-2.5 py-1.5 text-xs font-medium text-brand-navy hover:bg-brand-paper transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Nueva nota / actividad
+          </button>
+        </div>
+        {showActivityForm && (
+          <InlineActivityForm
+            contactId={currentContact.id}
+            onDone={() => setShowActivityForm(false)}
+          />
+        )}
+        <ActivityFeed
+          activities={activities}
+          onComplete={(id) => completeActivity.mutate({ activityId: id, contactId: currentContact.id })}
+        />
+      </div>
+    )
+  }
+
   function renderTabContent() {
     if (activeTab === 'budgets') return renderBudgetsTab()
-    if (activeTab === 'activities') return <ActivityFeed activities={initialActivities} />
+    if (activeTab === 'activities') return renderActivitiesTab()
     return renderTasksTab()
   }
 
