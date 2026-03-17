@@ -330,7 +330,7 @@ export async function POST(request: Request) {
     .from('projects')
     .select('id')
     .eq('contact_id', contactId)
-    .neq('stage', 'cerrado')
+    .neq('stage', 'cierre')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()

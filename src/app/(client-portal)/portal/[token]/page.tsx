@@ -54,7 +54,7 @@ export default async function ClientPortalPage({ params }: PageProps) {
       .from('projects')
       .select('*', { count: 'exact', head: true })
       .eq('contact_id', access.contact_id)
-      .not('stage', 'eq', 'cerrado'),
+      .not('stage', 'eq', 'cierre'),
     supabaseAdmin
       .from('calendar_events')
       .select('id, title, type, status, start_at, end_at, location, created_by')

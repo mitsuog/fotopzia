@@ -1078,6 +1078,149 @@ export type Database = {
           },
         ]
       }
+      project_wbs_nodes: {
+        Row: {
+          id: string
+          project_id: string
+          parent_id: string | null
+          level: string
+          position: number
+          title: string
+          description: string | null
+          is_milestone: boolean
+          status: string
+          priority: string
+          start_at: string | null
+          due_at: string | null
+          completed_at: string | null
+          assigned_to: string | null
+          progress_mode: string
+          progress_pct: number | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          parent_id?: string | null
+          level?: string
+          position?: number
+          title: string
+          description?: string | null
+          is_milestone?: boolean
+          status?: string
+          priority?: string
+          start_at?: string | null
+          due_at?: string | null
+          completed_at?: string | null
+          assigned_to?: string | null
+          progress_mode?: string
+          progress_pct?: number | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          parent_id?: string | null
+          level?: string
+          position?: number
+          title?: string
+          description?: string | null
+          is_milestone?: boolean
+          status?: string
+          priority?: string
+          start_at?: string | null
+          due_at?: string | null
+          completed_at?: string | null
+          assigned_to?: string | null
+          progress_mode?: string
+          progress_pct?: number | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_wbs_nodes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_wbs_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "project_wbs_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_wbs_nodes_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_dependencies: {
+        Row: {
+          id: string
+          project_id: string
+          predecessor_id: string
+          successor_id: string
+          dep_type: string
+          lag_days: number
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          predecessor_id: string
+          successor_id: string
+          dep_type?: string
+          lag_days?: number
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          predecessor_id?: string
+          successor_id?: string
+          dep_type?: string
+          lag_days?: number
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_dependencies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_dependencies_predecessor_id_fkey"
+            columns: ["predecessor_id"]
+            isOneToOne: false
+            referencedRelation: "project_wbs_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_dependencies_successor_id_fkey"
+            columns: ["successor_id"]
+            isOneToOne: false
+            referencedRelation: "project_wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resources: {
         Row: {
           color: string | null
@@ -1107,6 +1250,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_project_progress: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
+      compute_wbs_node_progress: {
+        Args: { p_node_id: string }
+        Returns: number
+      }
       get_current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]

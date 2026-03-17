@@ -172,7 +172,7 @@ export function ContactDetail({
   const initials = getInitials(currentContact.first_name, currentContact.last_name)
   const avatarColor = getAvatarColor(fullName)
   const activityTasks = activities.filter(activity => activity.type === 'task' && !activity.completed)
-  const openProjects = projects.filter(project => project.stage !== 'cerrado')
+  const openProjects = projects.filter(project => project.stage !== 'cierre')
   const totalTaskCount =
     activityTasks.length
     + upcomingEvents.length

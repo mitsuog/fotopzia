@@ -1,130 +1,135 @@
-﻿import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { createClient } from '@/lib/supabase/server'
-
-type ProjectRow = {
-  id: string
-  title: string
-  stage: string
-  due_date: string | null
-  contact: { first_name: string; last_name: string } | null
-}
-
-const STAGE_COLORS: Record<string, string> = {
-  preproduccion:  'bg-gray-100 text-gray-600',
-  produccion:     'bg-blue-100 text-blue-700',
-  postproduccion: 'bg-purple-100 text-purple-700',
-  entrega:        'bg-amber-100 text-amber-700',
-  cerrado:        'bg-emerald-100 text-emerald-700',
-}
-const STAGE_LABELS: Record<string, string> = {
-  preproduccion:  'Pre-producción',
-  produccion:     'Producción',
-  postproduccion: 'Post-producción',
-  entrega:        'Entrega',
-  cerrado:        'Cerrado',
-}
-function StageBadge({ stage }: { stage: string }) {
-  return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STAGE_COLORS[stage] ?? 'bg-gray-100 text-gray-600'}`}>
-      {STAGE_LABELS[stage] ?? stage.replace('_', ' ')}
-    </span>
-  )
-}
-
-type TaskRow = { project_id: string; status: string }
-type DeliverableRow = { project_id: string; status: string }
+import { ProjectsPageClient } from '@/components/projects/ProjectsPageClient'
+import type { PortfolioProjectSummary, ProjectType } from '@/types/wbs'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ProjectsPage() {
   const supabase = await createClient()
 
-  const [{ data: projects }, { data: tasks }, { data: deliverables }] = await Promise.all([
+  const [
+    { data: projects },
+    { data: tasks },
+    { data: deliverables },
+    wbsResult,
+    macroResult,
+  ] = await Promise.all([
     supabase
       .from('projects')
-      .select('id, title, stage, due_date, contact:contacts(first_name, last_name)')
+      .select('id, title, stage, project_type, start_date, due_date, color, contact:contacts(first_name, last_name, company_name)')
       .order('created_at', { ascending: false }),
     supabase.from('project_tasks').select('project_id, status'),
     supabase.from('project_deliverables').select('project_id, status'),
+    // Graceful — table may not exist yet if migration hasn't run
+    supabase.from('project_wbs_nodes').select('project_id, status, level').eq('level', 'task'),
+    supabase.from('project_wbs_nodes').select('project_id, level').eq('level', 'macro'),
   ])
 
+  type RawProject = {
+    id: string
+    title: string
+    stage: string
+    project_type: string | null
+    start_date: string | null
+    due_date: string | null
+    color: string | null
+    contact: { first_name: string; last_name: string; company_name: string | null } | null
+  }
+
+  const rawProjects = ((projects ?? []) as unknown as RawProject[])
+
+  // Build task stats from both project_tasks and wbs task nodes
   const taskMap = new Map<string, { total: number; done: number }>()
-  ;((tasks ?? []) as unknown as TaskRow[]).forEach(task => {
-    const current = taskMap.get(task.project_id) ?? { total: 0, done: 0 }
-    current.total += 1
-    if (task.status === 'done') current.done += 1
-    taskMap.set(task.project_id, current)
-  })
+  for (const task of tasks ?? []) {
+    const t = task as { project_id: string; status: string }
+    const cur = taskMap.get(t.project_id) ?? { total: 0, done: 0 }
+    cur.total++
+    if (t.status === 'done') cur.done++
+    taskMap.set(t.project_id, cur)
+  }
+  for (const node of wbsResult.data ?? []) {
+    const n = node as { project_id: string; status: string }
+    const cur = taskMap.get(n.project_id) ?? { total: 0, done: 0 }
+    cur.total++
+    if (n.status === 'done') cur.done++
+    taskMap.set(n.project_id, cur)
+  }
 
   const deliverableMap = new Map<string, { total: number; delivered: number }>()
-  ;((deliverables ?? []) as unknown as DeliverableRow[]).forEach(item => {
-    const current = deliverableMap.get(item.project_id) ?? { total: 0, delivered: 0 }
-    current.total += 1
-    if (item.status === 'delivered' || item.status === 'approved') current.delivered += 1
-    deliverableMap.set(item.project_id, current)
+  for (const item of deliverables ?? []) {
+    const d = item as { project_id: string; status: string }
+    const cur = deliverableMap.get(d.project_id) ?? { total: 0, delivered: 0 }
+    cur.total++
+    if (d.status === 'delivered' || d.status === 'approved') cur.delivered++
+    deliverableMap.set(d.project_id, cur)
+  }
+
+  const macroMap = new Map<string, number>()
+  for (const node of macroResult.data ?? []) {
+    const n = node as { project_id: string }
+    macroMap.set(n.project_id, (macroMap.get(n.project_id) ?? 0) + 1)
+  }
+
+  const projectRows = rawProjects.map(p => {
+    const ts = taskMap.get(p.id) ?? { total: 0, done: 0 }
+    const progress = ts.total > 0 ? Math.round((ts.done / ts.total) * 100) : 0
+    return {
+      id: p.id,
+      title: p.title,
+      stage: p.stage,
+      project_type: p.project_type ?? 'contract',
+      start_date: p.start_date,
+      due_date: p.due_date,
+      color: p.color,
+      contact: p.contact
+        ? { first_name: p.contact.first_name, last_name: p.contact.last_name }
+        : null,
+      progress,
+      taskStats: ts,
+      deliverableStats: deliverableMap.get(p.id) ?? { total: 0, delivered: 0 },
+    }
   })
 
+  // Build PortfolioProjectSummary[] for portfolio view (server-side, no API call needed)
+  const portfolioProjects: PortfolioProjectSummary[] = rawProjects
+    .filter(p => p.stage !== 'cierre')
+    .map(p => {
+      const ts = taskMap.get(p.id) ?? { total: 0, done: 0 }
+      const progress = ts.total > 0 ? Math.round((ts.done / ts.total) * 100) : 0
+      const contact = p.contact
+      const contactName = contact?.company_name
+        ? contact.company_name
+        : contact
+          ? `${contact.first_name} ${contact.last_name}`.trim()
+          : null
+      return {
+        id: p.id,
+        title: p.title,
+        stage: p.stage,
+        project_type: (p.project_type ?? 'contract') as ProjectType,
+        start_date: p.start_date,
+        due_date: p.due_date,
+        progress,
+        color: p.color,
+        contact_name: contactName,
+        assigned_to_name: null,
+        macro_count: macroMap.get(p.id) ?? 0,
+        task_done: ts.done,
+        task_total: ts.total,
+      }
+    })
+
+  const activeCount = projectRows.filter(p => p.stage !== 'cierre').length
+
   return (
-    <div>
-      <PageHeader title="Proyectos" subtitle={`${projects?.length ?? 0} proyectos en operacion`} badge="Studio Ops" />
-
-      <div className="rounded-xl border border-brand-stone/80 bg-white/80 overflow-hidden shadow-[0_12px_26px_-20px_rgba(28,43,74,0.45)] backdrop-blur">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead>
-            <tr className="border-b border-brand-stone bg-brand-canvas/80">
-              <th className="text-left px-4 py-3 font-semibold text-brand-navy">Proyecto</th>
-              <th className="text-left px-4 py-3 font-semibold text-brand-navy">Etapa</th>
-              <th className="text-left px-4 py-3 font-semibold text-brand-navy">Tareas</th>
-              <th className="text-left px-4 py-3 font-semibold text-brand-navy">Entregables</th>
-              <th className="text-left px-4 py-3 font-semibold text-brand-navy">Vence</th>
-            </tr>
-            </thead>
-            <tbody>
-            {(projects ?? []).length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-10 text-gray-400">Sin proyectos aun</td>
-              </tr>
-            ) : (
-              ((projects ?? []) as unknown as ProjectRow[]).map(project => {
-                const taskStats = taskMap.get(project.id) ?? { total: 0, done: 0 }
-                const deliverableStats = deliverableMap.get(project.id) ?? { total: 0, delivered: 0 }
-
-                return (
-                  <tr key={project.id} className="border-b border-brand-stone/50 last:border-0 hover:bg-brand-canvas/40 cursor-pointer transition-colors">
-                    <td className="px-4 py-3">
-                      <Link href={`/projects/${project.id}`} className="block">
-                        <p className="font-medium text-brand-navy hover:text-brand-gold">{project.title}</p>
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          {project.contact ? `${project.contact.first_name} ${project.contact.last_name}` : 'Sin contacto'}
-                        </p>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link href={`/projects/${project.id}`} className="block">
-                        <StageBadge stage={project.stage} />
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <Link href={`/projects/${project.id}`} className="block">{taskStats.done}/{taskStats.total}</Link>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <Link href={`/projects/${project.id}`} className="block">{deliverableStats.delivered}/{deliverableStats.total}</Link>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      <Link href={`/projects/${project.id}`} className="block">
-                        {project.due_date ? new Date(project.due_date).toLocaleDateString('es-MX') : '-'}
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Proyectos"
+        subtitle={`${activeCount} proyectos activos · ${projectRows.length} en total`}
+        badge="Studio Ops"
+      />
+      <ProjectsPageClient projects={projectRows} portfolioProjects={portfolioProjects} />
     </div>
   )
 }

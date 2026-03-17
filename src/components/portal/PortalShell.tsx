@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-type PortalSection = 'summary' | 'documents' | 'event'
+type PortalSection = 'summary' | 'documents' | 'event' | 'galeria'
 
 interface PortalShellProps {
   token: string
@@ -16,6 +16,7 @@ const NAV_ITEMS: Array<{ key: PortalSection; label: string; href: (token: string
   { key: 'summary', label: 'Resumen', href: token => `/portal/${token}` },
   { key: 'documents', label: 'Documentos', href: token => `/portal/${token}/documents` },
   { key: 'event', label: 'Mi evento', href: token => `/portal/${token}/evento` },
+  { key: 'galeria', label: 'Galería', href: token => `/portal/${token}/galeria` },
 ]
 
 export function PortalShell({ token, active, title, description, children }: PortalShellProps) {

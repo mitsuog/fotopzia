@@ -1,0 +1,131 @@
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import type { PortfolioProjectSummary, ProjectType } from '@/types/wbs'
+
+export const dynamic = 'force-dynamic'
+
+type RawProject = {
+  id: string
+  title: string
+  stage: string
+  project_type: string | null
+  start_date: string | null
+  due_date: string | null
+  progress_mode: string | null
+  progress_pct: number | null
+  color: string | null
+  assigned_to: string | null
+  contact: { first_name: string; last_name: string; company_name: string | null } | null
+  assigned_profile: { full_name: string | null } | null
+}
+
+type RawWBSNode = {
+  id: string
+  project_id: string
+  status: string
+  level: string
+}
+
+export async function GET() {
+  const supabase = await createClient()
+
+  // Try full query (requires migration 0022); fall back to base columns if new ones don't exist yet
+  let { data: rawProjects, error: projError } = await supabase
+    .from('projects')
+    .select(`
+      id, title, stage, project_type, start_date, due_date,
+      progress_mode, progress_pct, color, assigned_to,
+      contact:contacts(first_name, last_name, company_name),
+      assigned_profile:profiles!projects_assigned_to_fkey(full_name)
+    `)
+    .neq('stage', 'cierre')
+    .order('created_at', { ascending: false })
+
+  if (projError) {
+    // Fallback: query without columns added in migration 0022
+    const fallback = await supabase
+      .from('projects')
+      .select(`
+        id, title, stage, start_date, due_date,
+        contact:contacts(first_name, last_name, company_name)
+      `)
+      .neq('stage', 'cierre')
+      .order('created_at', { ascending: false })
+    if (fallback.error) return NextResponse.json({ error: fallback.error.message }, { status: 400 })
+    rawProjects = fallback.data
+  }
+
+  const projects = (rawProjects ?? []) as unknown as RawProject[]
+
+  if (projects.length === 0) {
+    return NextResponse.json({ data: [] })
+  }
+
+  const projectIds = projects.map(p => p.id)
+
+  const [{ data: rawWbsNodes }, { data: rawMacroNodes }] = await Promise.all([
+    supabase
+      .from('project_wbs_nodes')
+      .select('id, project_id, level, status')
+      .in('project_id', projectIds)
+      .eq('level', 'task'),
+    supabase
+      .from('project_wbs_nodes')
+      .select('id, project_id')
+      .in('project_id', projectIds)
+      .eq('level', 'macro'),
+  ])
+
+  const wbsNodes = (rawWbsNodes ?? []) as unknown as RawWBSNode[]
+  const macroNodes = (rawMacroNodes ?? []) as unknown as { id: string; project_id: string }[]
+
+  const tasksByProject = new Map<string, { total: number; done: number }>()
+  for (const node of wbsNodes) {
+    const entry = tasksByProject.get(node.project_id) ?? { total: 0, done: 0 }
+    entry.total++
+    if (node.status === 'done') entry.done++
+    tasksByProject.set(node.project_id, entry)
+  }
+
+  const macrosByProject = new Map<string, number>()
+  for (const node of macroNodes) {
+    macrosByProject.set(node.project_id, (macrosByProject.get(node.project_id) ?? 0) + 1)
+  }
+
+  const summaries: PortfolioProjectSummary[] = projects.map(p => {
+    const tasks = tasksByProject.get(p.id) ?? { total: 0, done: 0 }
+    let progress: number
+    if (p.progress_mode === 'manual' && p.progress_pct !== null) {
+      progress = p.progress_pct
+    } else if (tasks.total > 0) {
+      progress = Math.round((tasks.done / tasks.total) * 100)
+    } else {
+      progress = 0
+    }
+
+    const contact = p.contact
+    const contactName = contact?.company_name
+      ? contact.company_name
+      : contact
+        ? `${contact.first_name} ${contact.last_name}`.trim()
+        : null
+
+    return {
+      id: p.id,
+      title: p.title,
+      stage: p.stage,
+      project_type: (p.project_type ?? 'contract') as ProjectType,
+      start_date: p.start_date,
+      due_date: p.due_date,
+      progress,
+      color: p.color,
+      contact_name: contactName,
+      assigned_to_name: p.assigned_profile?.full_name ?? null,
+      macro_count: macrosByProject.get(p.id) ?? 0,
+      task_done: tasks.done,
+      task_total: tasks.total,
+    }
+  })
+
+  return NextResponse.json({ data: summaries })
+}

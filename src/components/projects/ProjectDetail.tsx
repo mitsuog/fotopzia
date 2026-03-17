@@ -12,35 +12,45 @@ import {
   type ProjectDeliverable,
   type TeamProfile,
 } from '@/hooks/useProject'
+import { useWBS } from '@/hooks/useWBS'
+import type { WBSNode, Dependency } from '@/types/wbs'
 import { ProjectGrid } from './ProjectGrid'
 import { ProjectKanban } from './ProjectKanban'
-import { ProjectGantt } from './ProjectGantt'
 import { ProjectDeliverables } from './ProjectDeliverables'
 import { TaskSidePanel } from './TaskSidePanel'
+import { WBSTree } from './WBSTree'
+import { WBSNodePanel } from './WBSNodePanel'
+import { GanttV2 } from './GanttV2'
+import { ProjectProgressRing } from './ProjectProgressRing'
 
 type ViewMode = 'grid' | 'kanban' | 'gantt'
-type Tab = 'tasks' | 'deliverables'
+type Tab = 'tasks' | 'wbs' | 'deliverables'
+type WBSView = 'tree' | 'gantt'
 
-const STAGE_OPTIONS: { value: ProjectWithAll['stage']; label: string }[] = [
-  { value: 'preproduccion',  label: 'Pre-producción' },
-  { value: 'produccion',     label: 'Producción' },
-  { value: 'postproduccion', label: 'Post-producción' },
-  { value: 'entrega',        label: 'Entrega' },
-  { value: 'cerrado',        label: 'Cerrado' },
+const STAGE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'preproduccion',    label: 'Pre-producción' },
+  { value: 'primera_revision', label: '1ª Revisión' },
+  { value: 'produccion',       label: 'Producción' },
+  { value: 'segunda_revision', label: '2ª Revisión' },
+  { value: 'entrega',          label: 'Entrega' },
+  { value: 'cierre',           label: 'Cierre' },
 ]
 
-const STAGE_COLORS: Record<ProjectWithAll['stage'], string> = {
-  preproduccion:  'bg-gray-100 text-gray-600',
-  produccion:     'bg-blue-100 text-blue-700',
-  postproduccion: 'bg-purple-100 text-purple-700',
-  entrega:        'bg-amber-100 text-amber-700',
-  cerrado:        'bg-emerald-100 text-emerald-700',
+const STAGE_COLORS: Record<string, string> = {
+  preproduccion:    'bg-gray-100 text-gray-600',
+  primera_revision: 'bg-sky-100 text-sky-700',
+  produccion:       'bg-blue-100 text-blue-700',
+  segunda_revision: 'bg-violet-100 text-violet-700',
+  entrega:          'bg-amber-100 text-amber-700',
+  cierre:           'bg-emerald-100 text-emerald-700',
 }
 
 interface ProjectDetailProps {
   initialProject: ProjectWithAll
   initialTasks: ProjectTask[]
   initialDeliverables: ProjectDeliverable[]
+  initialWBSNodes: WBSNode[]
+  initialDependencies: Dependency[]
   profiles: TeamProfile[]
 }
 
@@ -48,20 +58,31 @@ export function ProjectDetail({
   initialProject,
   initialTasks,
   initialDeliverables,
+  initialWBSNodes,
+  initialDependencies,
   profiles,
 }: ProjectDetailProps) {
   const { project, updateProject } = useProject(initialProject.id, initialProject)
   const { tasks, updateTask, deleteTask, createTask } = useProjectTasks(initialProject.id, initialTasks)
   const { deliverables, updateDeliverable, createDeliverable } = useProjectDeliverables(initialProject.id, initialDeliverables)
+  const { nodes: wbsNodes, tree, deps, getNodeProgress, createNode, updateNode, deleteNode, createDependency, deleteDependency } =
+    useWBS(initialProject.id, initialWBSNodes, initialDependencies)
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [groupBy, setGroupBy] = useState<'status' | 'assignee'>('status')
   const [tab, setTab] = useState<Tab>('tasks')
+  const [wbsView, setWbsView] = useState<WBSView>('tree')
   const [panel, setPanel] = useState<{ open: boolean; task: ProjectTask | null; isNew: boolean }>({
     open: false, task: null, isNew: false,
   })
+  const [wbsPanel, setWbsPanel] = useState<WBSNode | null>(null)
 
   const p = project ?? initialProject
+
+  // Overall project progress from WBS
+  const wbsTaskNodes = wbsNodes.filter(n => n.level === 'task')
+  const wbsDone = wbsTaskNodes.filter(n => n.status === 'done').length
+  const wbsProgress = wbsTaskNodes.length > 0 ? Math.round((wbsDone / wbsTaskNodes.length) * 100) : 0
 
   function openNew() { setPanel({ open: true, task: null, isNew: true }) }
   function openEdit(t: ProjectTask) { setPanel({ open: true, task: t, isNew: false }) }
@@ -108,17 +129,26 @@ export function ProjectDetail({
               </div>
             )}
           </div>
-          <div className="shrink-0">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Etapa</p>
-            <select
-              value={p.stage}
-              onChange={e => updateProject({ stage: e.target.value as ProjectWithAll['stage'] })}
-              className={`cursor-pointer rounded-full border-0 px-3 py-1.5 text-xs font-semibold outline-none ring-1 ring-gray-200 ${STAGE_COLORS[p.stage]}`}
-            >
-              {STAGE_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+          <div className="flex items-center gap-4">
+            {/* WBS progress ring */}
+            {wbsTaskNodes.length > 0 && (
+              <div className="flex flex-col items-center gap-1">
+                <ProjectProgressRing progress={wbsProgress} size={48} strokeWidth={4} />
+                <span className="text-[10px] text-gray-400">avance WBS</span>
+              </div>
+            )}
+            <div className="shrink-0">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Etapa</p>
+              <select
+                value={p.stage}
+                onChange={e => updateProject({ stage: e.target.value as ProjectWithAll['stage'] })}
+                className={`cursor-pointer rounded-full border-0 px-3 py-1.5 text-xs font-semibold outline-none ring-1 ring-gray-200 ${STAGE_COLORS[p.stage] ?? 'bg-gray-100 text-gray-600'}`}
+              >
+                {STAGE_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -127,6 +157,7 @@ export function ProjectDetail({
       <div className="flex gap-1 border-b border-gray-200">
         {([
           { id: 'tasks' as Tab, label: `Tareas (${tasks.length})` },
+          { id: 'wbs' as Tab, label: `WBS (${wbsNodes.length})` },
           { id: 'deliverables' as Tab, label: `Entregables (${deliverables.length})` },
         ] as const).map(t => (
           <button
@@ -144,14 +175,91 @@ export function ProjectDetail({
         ))}
       </div>
 
-      {tab === 'deliverables' ? (
+      {tab === 'deliverables' && (
         <ProjectDeliverables
           projectId={p.id}
           deliverables={deliverables}
           onUpdateDeliverable={updateDeliverable}
           onCreateDeliverable={createDeliverable}
         />
-      ) : (
+      )}
+
+      {tab === 'wbs' && (
+        <div className="space-y-4">
+          {/* WBS sub-toolbar */}
+          <div className="flex items-center justify-between">
+            <div className="flex overflow-hidden rounded-lg border border-gray-200 text-xs">
+              {([
+                { v: 'tree' as WBSView, label: '≡ Árbol' },
+                { v: 'gantt' as WBSView, label: '━ Gantt' },
+              ] as const).map(({ v, label }) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setWbsView(v)}
+                  className={`px-3 py-1.5 font-medium transition-colors ${
+                    wbsView === v ? 'bg-brand-navy text-white' : 'text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {wbsView === 'tree' ? (
+            <div className="flex gap-0">
+              {/* Tree */}
+              <div className={`min-w-0 transition-all ${wbsPanel ? 'flex-1' : 'w-full'}`}>
+                <WBSTree
+                  nodes={wbsNodes}
+                  tree={tree}
+                  profiles={profiles}
+                  getNodeProgress={getNodeProgress}
+                  onUpdateNode={updateNode}
+                  onCreateNode={createNode}
+                  onDeleteNode={deleteNode}
+                  onOpenNode={setWbsPanel}
+                />
+              </div>
+              {/* Node detail panel */}
+              {wbsPanel && (
+                <div className="ml-4 w-80 shrink-0 rounded-xl border border-brand-stone shadow-sm">
+                  <WBSNodePanel
+                    node={wbsPanel}
+                    allNodes={wbsNodes}
+                    deps={deps}
+                    profiles={profiles}
+                    onClose={() => setWbsPanel(null)}
+                    onUpdate={async (id, updates) => {
+                      const result = await updateNode(id, updates)
+                      setWbsPanel(prev => prev ? { ...prev, ...updates } : null)
+                      return result
+                    }}
+                    onDelete={async id => {
+                      await deleteNode(id)
+                      setWbsPanel(null)
+                    }}
+                    onCreateDependency={async (payload) => createDependency(payload)}
+                    onDeleteDependency={async (depId) => deleteDependency(depId)}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <GanttV2
+              nodes={wbsNodes}
+              tree={tree}
+              dependencies={deps}
+              profiles={profiles}
+              getNodeProgress={getNodeProgress}
+              onOpenNode={node => { setWbsPanel(node); setWbsView('tree') }}
+            />
+          )}
+        </div>
+      )}
+
+      {tab === 'tasks' && (
         <>
           {/* Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -178,20 +286,18 @@ export function ProjectDetail({
               {/* View toggle */}
               <div className="flex overflow-hidden rounded-lg border border-gray-200 bg-white text-xs">
                 {([
-                  { m: 'grid' as ViewMode,   icon: '≡',  label: 'Lista' },
-                  { m: 'kanban' as ViewMode, icon: '⊞',  label: 'Tablero' },
-                  { m: 'gantt' as ViewMode,  icon: '━',  label: 'Cronograma' },
-                ] as const).map(({ m, icon, label }) => (
+                  { m: 'grid' as ViewMode,   label: '≡ Lista' },
+                  { m: 'kanban' as ViewMode, label: '⊞ Tablero' },
+                ] as const).map(({ m, label }) => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => setViewMode(m)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 font-medium transition-colors ${
+                    className={`px-3 py-1.5 font-medium transition-colors ${
                       viewMode === m ? 'bg-brand-navy text-white' : 'text-gray-500 hover:bg-gray-50'
                     }`}
                   >
-                    <span className="text-sm leading-none">{icon}</span>
-                    <span className="hidden sm:inline">{label}</span>
+                    {label}
                   </button>
                 ))}
               </div>
@@ -228,17 +334,10 @@ export function ProjectDetail({
               onOpenTask={openEdit}
             />
           )}
-          {viewMode === 'gantt' && (
-            <ProjectGantt
-              tasks={tasks}
-              profiles={profiles}
-              onOpenTask={openEdit}
-            />
-          )}
         </>
       )}
 
-      {/* Side panel for create / edit */}
+      {/* Side panel for tasks */}
       <TaskSidePanel
         open={panel.open}
         task={panel.task}

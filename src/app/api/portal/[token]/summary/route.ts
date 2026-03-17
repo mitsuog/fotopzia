@@ -29,7 +29,7 @@ export async function GET(
       supabaseAdmin.from('albums').select('*', { count: 'exact', head: true }).eq('contact_id', contactId).eq('is_published', true),
       supabaseAdmin.from('quotes').select('*', { count: 'exact', head: true }).eq('contact_id', contactId),
       supabaseAdmin.from('contracts').select('*', { count: 'exact', head: true }).eq('contact_id', contactId),
-      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('contact_id', contactId).not('stage', 'eq', 'cerrado'),
+      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('contact_id', contactId).not('stage', 'eq', 'cierre'),
     ])
 
   return NextResponse.json({

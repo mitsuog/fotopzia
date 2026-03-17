@@ -85,7 +85,7 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
         .from('projects')
         .select('id, title, stage, due_date')
         .eq('contact_id', contract.contact_id)
-        .neq('stage', 'cerrado')
+        .neq('stage', 'cierre')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()

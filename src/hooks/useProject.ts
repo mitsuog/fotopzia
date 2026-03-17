@@ -32,7 +32,7 @@ export type ProjectDeliverable = {
 export type ProjectWithAll = {
   id: string
   title: string
-  stage: 'preproduccion' | 'produccion' | 'postproduccion' | 'entrega' | 'cerrado'
+  stage: 'preproduccion' | 'primera_revision' | 'produccion' | 'segunda_revision' | 'entrega' | 'cierre'
   contact_id: string
   deal_id: string | null
   start_date: string | null

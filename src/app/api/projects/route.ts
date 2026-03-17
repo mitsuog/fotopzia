@@ -23,10 +23,13 @@ export async function POST(request: Request) {
     .from('projects')
     .insert({
       title: payload.title,
-      contact_id: payload.contact_id,
+      contact_id: payload.contact_id ?? null,
       deal_id: payload.deal_id ?? null,
+      project_type: payload.project_type ?? 'contract',
       description: payload.description ?? null,
+      start_date: payload.start_date ?? null,
       due_date: payload.due_date ?? null,
+      color: payload.color ?? null,
       assigned_to: payload.assigned_to ?? null,
       created_by: auth.user.id,
     })
