@@ -52,7 +52,7 @@ export async function GET() {
       .neq('stage', 'cierre')
       .order('created_at', { ascending: false })
     if (fallback.error) return NextResponse.json({ error: fallback.error.message }, { status: 400 })
-    rawProjects = fallback.data
+    rawProjects = fallback.data as unknown as typeof rawProjects
   }
 
   const projects = (rawProjects ?? []) as unknown as RawProject[]
