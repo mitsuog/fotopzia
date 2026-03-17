@@ -1,6 +1,6 @@
 'use client'
 
-import type { Dependency, NodeBarMap, DependencyType } from '@/types/wbs'
+import type { Dependency, NodeBarMap, DependencyType, WBSNode } from '@/types/wbs'
 
 // Color per dep type
 const DEP_COLORS: Record<DependencyType, string> = {
@@ -13,11 +13,19 @@ const DEP_COLORS: Record<DependencyType, string> = {
 const EXIT_GAP = 22   // px from bar edge before turning
 const CORNER_R = 6    // corner radius for Q bezier turns
 
+const DEP_TOOLTIPS: Record<DependencyType, (predName: string) => string> = {
+  FS: (pred) => `Empieza después de que termine "${pred}"`,
+  SS: (pred) => `Empieza al mismo tiempo que "${pred}"`,
+  FF: (pred) => `Termina junto con "${pred}"`,
+  SF: (pred) => `Empieza antes de que termine "${pred}"`,
+}
+
 interface DependencyLayerProps {
   dependencies: Dependency[]
   nodeBarMap: NodeBarMap
   totalWidthPx: number
   totalHeightPx: number
+  nodes?: WBSNode[]
 }
 
 export function DependencyLayer({
@@ -25,6 +33,7 @@ export function DependencyLayer({
   nodeBarMap,
   totalWidthPx,
   totalHeightPx,
+  nodes = [],
 }: DependencyLayerProps) {
   if (dependencies.length === 0 || totalWidthPx <= 0) return null
 
@@ -97,13 +106,9 @@ export function DependencyLayer({
         }
 
         const d = routePath(x1, y1, x2, y2, type)
-
-        // Badge at midpoint of the vertical segment
-        const midY = (y1 + y2) / 2
-        const badgeX = type === 'FS' || type === 'FF'
-          ? Math.max(x1 + EXIT_GAP, type === 'FF' ? x2 + EXIT_GAP : x1 + EXIT_GAP) + 3
-          : Math.min(x1 - EXIT_GAP, x2 - EXIT_GAP) - 3
-        const showBadge = Math.abs(y2 - y1) > 28
+        const predNode = nodes.find(n => n.id === dep.predecessor_id)
+        const predName = predNode?.title ?? dep.predecessor_id
+        const tooltip = DEP_TOOLTIPS[type]?.(predName) ?? type
 
         return (
           <g key={dep.id}>
@@ -117,7 +122,7 @@ export function DependencyLayer({
               strokeLinejoin="round"
               markerEnd={`url(#arw-bg-${type})`}
             />
-            {/* Colored arrow */}
+            {/* Colored arrow with accessible tooltip */}
             <path
               d={d}
               fill="none"
@@ -126,34 +131,9 @@ export function DependencyLayer({
               strokeLinecap="round"
               strokeLinejoin="round"
               markerEnd={`url(#arw-${type})`}
-            />
-            {/* Dep-type badge at midpoint */}
-            {showBadge && (
-              <>
-                <rect
-                  x={badgeX - 1}
-                  y={midY - 7}
-                  width={16}
-                  height={14}
-                  rx={3}
-                  fill="white"
-                  stroke={color}
-                  strokeWidth={0.75}
-                  opacity={0.9}
-                />
-                <text
-                  x={badgeX + 7}
-                  y={midY + 4}
-                  textAnchor="middle"
-                  fontSize={8}
-                  fontWeight="600"
-                  fill={color}
-                  fontFamily="system-ui, sans-serif"
-                >
-                  {type}
-                </text>
-              </>
-            )}
+            >
+              <title>{tooltip}</title>
+            </path>
           </g>
         )
       })}

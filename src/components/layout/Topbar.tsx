@@ -154,7 +154,7 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {actionButton && <div className="hidden md:flex md:items-center">{actionButton}</div>}
+          {actionButton && <div className="hidden sm:flex sm:items-center">{actionButton}</div>}
           <Link
             href="/settings"
             className="inline-flex items-center gap-2 rounded-lg border border-brand-stone bg-white px-2 py-1.5 text-brand-navy transition-colors hover:bg-brand-paper"

@@ -179,7 +179,69 @@ export function ProjectGrid({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div>
+      {/* Mobile: card stack */}
+      <div className="block sm:hidden space-y-1">
+        {tasks.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
+            <p className="text-sm text-gray-400">Sin tareas todavía.</p>
+          </div>
+        ) : (
+          groups.map(group => {
+            const statusCfg = groupBy === 'status' ? STATUS_CONFIG[group.key as ProjectTask['status']] : null
+            if (group.tasks.length === 0) return null
+            return (
+              <div key={group.key}>
+                <p className={`px-1 py-1.5 text-xs font-bold ${statusCfg ? GROUP_HEADER_COLORS[group.key as ProjectTask['status']] : 'text-gray-700'}`}>
+                  {group.label} · {group.tasks.length}
+                </p>
+                {group.tasks.map(task => {
+                  const priorityCfg = PRIORITY_CONFIG[task.priority]
+                  const profile = profiles.find(p => p.id === task.assigned_to)
+                  const isOverdue = task.due_at && new Date(task.due_at) < now && task.status !== 'done'
+                  const statusCfgTask = STATUS_CONFIG[task.status]
+                  return (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => onOpenTask(task)}
+                      className={`w-full text-left rounded-xl border-l-4 ${priorityCfg.border} border border-gray-200 bg-white p-3 mb-1 shadow-sm`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className={`text-sm font-medium flex-1 ${task.status === 'done' ? 'text-gray-300 line-through' : 'text-gray-800'}`}>
+                          {task.title}
+                        </p>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusCfgTask.pill}`}>
+                          {statusCfgTask.label}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2 text-xs text-gray-400">
+                        {profile && (
+                          <span
+                            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                            style={{ backgroundColor: hashColor(profile.id) }}
+                          >
+                            {initials(profile.full_name)}
+                          </span>
+                        )}
+                        {task.due_at && (
+                          <span className={isOverdue ? 'font-semibold text-red-500' : ''}>
+                            Vence: {fmtDate(task.due_at)}
+                          </span>
+                        )}
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${priorityCfg.badge}`}>{priorityCfg.label}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <table className="w-full min-w-[740px]">
         {/* Column headers */}
         <thead>
@@ -373,6 +435,7 @@ export function ProjectGrid({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

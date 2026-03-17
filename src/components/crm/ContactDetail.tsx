@@ -299,10 +299,11 @@ export function ContactDetail({
       <div className="space-y-4">
         {activityTasks.length > 0 && (
           <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
-            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p className="mb-0.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               <ClipboardList className="h-3.5 w-3.5" />
-              Tareas CRM
+              Tareas pendientes de este contacto
             </p>
+            <p className="mb-2 text-[10px] text-gray-400">(llamadas, seguimientos, etc.)</p>
             <div className="space-y-2">
               {activityTasks.map(task => (
                 <div key={task.id} className="rounded-md border border-brand-stone bg-white p-2">
@@ -317,10 +318,11 @@ export function ContactDetail({
 
         {upcomingEvents.length > 0 && (
           <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
-            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p className="mb-0.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               <CalendarClock className="h-3.5 w-3.5" />
-              Citas abiertas
+              Próximas citas
             </p>
+            <p className="mb-2 text-[10px] text-gray-400">(agendadas en el calendario)</p>
             <div className="space-y-2">
               {upcomingEvents.map(event => (
                 <div key={event.id} className="rounded-md border border-brand-stone bg-white p-2">
@@ -337,10 +339,11 @@ export function ContactDetail({
 
         {openFollowups.length > 0 && (
           <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
-            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p className="mb-0.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               <ClipboardList className="h-3.5 w-3.5" />
-              Seguimientos abiertos
+              Seguimientos activos
             </p>
+            <p className="mb-2 text-[10px] text-gray-400">(compromisos sin cerrar)</p>
             <div className="space-y-2">
               {openFollowups.map(followup => (
                 <div key={followup.id} className="rounded-md border border-brand-stone bg-white p-2">
@@ -357,7 +360,7 @@ export function ContactDetail({
           <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
             <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               <ClipboardList className="h-3.5 w-3.5" />
-              WF pendientes por aprobar
+              Documentos por aprobar
             </p>
             <div className="space-y-2">
               {pendingApprovals.map(item => (
@@ -377,20 +380,26 @@ export function ContactDetail({
           <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
             <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               <FolderKanban className="h-3.5 w-3.5" />
-              Proyectos y tareas
+              Proyectos activos
             </p>
             <div className="space-y-2">
               {openProjects.map(project => (
-                <div key={project.id} className="rounded-md border border-brand-stone bg-white p-2">
-                  <p className="text-sm font-medium text-brand-navy">{project.title}</p>
-                  <p className="text-xs text-gray-600">Etapa: {project.stage}</p>
-                  {project.due_date && <p className="text-xs text-gray-400">Entrega estimada: {new Date(project.due_date).toLocaleDateString('es-MX')}</p>}
-                </div>
+                <Link key={project.id} href={`/projects/${project.id}`} className="block rounded-md border border-brand-stone bg-white p-2 hover:border-brand-gold/60 hover:bg-brand-canvas/60 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-brand-navy">{project.title}</p>
+                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600">{project.stage.replace('_', ' ')}</span>
+                  </div>
+                  {project.due_date && <p className="mt-0.5 text-xs text-gray-400">Entrega: {new Date(project.due_date).toLocaleDateString('es-MX')}</p>}
+                </Link>
               ))}
               {openProjectTasks.map(task => (
                 <div key={task.id} className="rounded-md border border-brand-stone bg-white p-2">
                   <p className="text-sm font-medium text-brand-navy">{task.title}</p>
-                  <p className="text-xs text-gray-600">Estado: {task.status} · Prioridad: {task.priority}</p>
+                  <p className="text-xs text-gray-500">
+                    {task.status === 'pending' ? 'Pendiente' : task.status === 'in_progress' ? 'En progreso' : task.status === 'blocked' ? 'Bloqueado' : 'Hecho'}
+                    {' · '}
+                    {task.priority === 'urgent' ? 'Urgente' : task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
+                  </p>
                   {task.due_at && <p className="text-xs text-gray-400">Vence: {new Date(task.due_at).toLocaleString('es-MX')}</p>}
                 </div>
               ))}

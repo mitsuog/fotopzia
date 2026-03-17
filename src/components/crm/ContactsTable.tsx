@@ -61,8 +61,39 @@ export function ContactsTable({ initialContacts }: ContactsTableProps) {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-brand-stone rounded-lg overflow-hidden">
+      {/* Mobile: card list */}
+      <div className="block sm:hidden space-y-2">
+        {filtered.length === 0 ? (
+          <p className="py-12 text-center text-sm text-gray-400">
+            {search ? 'Sin resultados para la búsqueda' : 'Sin contactos registrados'}
+          </p>
+        ) : (
+          filtered.map(contact => (
+            <button
+              key={contact.id}
+              type="button"
+              onClick={() => router.push(`/crm/${contact.id}`)}
+              className="w-full text-left flex items-center gap-3 rounded-xl border border-brand-stone bg-white p-3 shadow-sm"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-navy text-sm font-bold text-white">
+                {contact.first_name[0]}{contact.last_name[0]}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-brand-navy truncate">{contact.first_name} {contact.last_name}</p>
+                <p className="text-xs text-gray-500 truncate">{contact.company_name ?? contact.email ?? ''}</p>
+              </div>
+              {contact.tags && contact.tags.length > 0 && (
+                <span className="shrink-0 rounded-full bg-brand-canvas border border-brand-stone px-2 py-0.5 text-[10px] text-gray-600">
+                  {contact.tags[0]}{contact.tags.length > 1 ? ` +${contact.tags.length - 1}` : ''}
+                </span>
+              )}
+            </button>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: Table */}
+      <div className="hidden sm:block bg-white border border-brand-stone rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px]">
           <thead>

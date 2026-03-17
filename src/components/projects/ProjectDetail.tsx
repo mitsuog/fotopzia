@@ -22,9 +22,10 @@ import { WBSTree } from './WBSTree'
 import { WBSNodePanel } from './WBSNodePanel'
 import { GanttV2 } from './GanttV2'
 import { ProjectProgressRing } from './ProjectProgressRing'
+import { ProjectCalendarTab } from './ProjectCalendarTab'
 
 type ViewMode = 'grid' | 'kanban' | 'gantt'
-type Tab = 'tasks' | 'wbs' | 'deliverables'
+type Tab = 'tasks' | 'wbs' | 'deliverables' | 'calendar'
 type WBSView = 'tree' | 'gantt'
 
 const STAGE_OPTIONS: { value: string; label: string }[] = [
@@ -65,14 +66,14 @@ export function ProjectDetail({
   const { project, updateProject } = useProject(initialProject.id, initialProject)
   const { tasks, updateTask, deleteTask, createTask } = useProjectTasks(initialProject.id, initialTasks)
   const { deliverables, updateDeliverable, createDeliverable } = useProjectDeliverables(initialProject.id, initialDeliverables)
-  const { nodes: wbsNodes, tree, deps, getNodeProgress, createNode, updateNode, deleteNode, createDependency, deleteDependency } =
+  const { nodes: wbsNodes, tree, deps, getNodeProgress, createNode, updateNode, deleteNode, createDependency, deleteDependency, moveNode } =
     useWBS(initialProject.id, initialWBSNodes, initialDependencies)
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [groupBy, setGroupBy] = useState<'status' | 'assignee'>('status')
   const [tab, setTab] = useState<Tab>('tasks')
   const [wbsView, setWbsView] = useState<WBSView>('tree')
-  const [panel, setPanel] = useState<{ open: boolean; task: ProjectTask | null; isNew: boolean }>({
+  const [panel, setPanel] = useState<{ open: boolean; task: ProjectTask | null; isNew: boolean; defaultDate?: string }>({
     open: false, task: null, isNew: false,
   })
   const [wbsPanel, setWbsPanel] = useState<WBSNode | null>(null)
@@ -157,7 +158,8 @@ export function ProjectDetail({
       <div className="flex gap-1 border-b border-gray-200">
         {([
           { id: 'tasks' as Tab, label: `Tareas (${tasks.length})` },
-          { id: 'wbs' as Tab, label: `WBS (${wbsNodes.length})` },
+          { id: 'wbs' as Tab, label: `Estructura (${wbsNodes.length})` },
+          { id: 'calendar' as Tab, label: 'Calendario' },
           { id: 'deliverables' as Tab, label: `Entregables (${deliverables.length})` },
         ] as const).map(t => (
           <button
@@ -175,6 +177,18 @@ export function ProjectDetail({
         ))}
       </div>
 
+      {tab === 'calendar' && (
+        <ProjectCalendarTab
+          tasks={tasks}
+          deliverables={deliverables}
+          profiles={profiles}
+          onNewTask={dateStr => {
+            setPanel({ open: true, task: null, isNew: true, defaultDate: dateStr })
+          }}
+          onOpenTask={openEdit}
+        />
+      )}
+
       {tab === 'deliverables' && (
         <ProjectDeliverables
           projectId={p.id}
@@ -191,7 +205,7 @@ export function ProjectDetail({
             <div className="flex overflow-hidden rounded-lg border border-gray-200 text-xs">
               {([
                 { v: 'tree' as WBSView, label: '≡ Árbol' },
-                { v: 'gantt' as WBSView, label: '━ Gantt' },
+                { v: 'gantt' as WBSView, label: '━ Línea de tiempo' },
               ] as const).map(({ v, label }) => (
                 <button
                   key={v}
@@ -210,7 +224,7 @@ export function ProjectDetail({
           {wbsView === 'tree' ? (
             <div className="flex gap-0">
               {/* Tree */}
-              <div className={`min-w-0 transition-all ${wbsPanel ? 'flex-1' : 'w-full'}`}>
+              <div className={`min-w-0 transition-all ${wbsPanel ? 'sm:flex-1' : 'w-full'}`}>
                 <WBSTree
                   nodes={wbsNodes}
                   tree={tree}
@@ -220,30 +234,55 @@ export function ProjectDetail({
                   onCreateNode={createNode}
                   onDeleteNode={deleteNode}
                   onOpenNode={setWbsPanel}
+                  onMoveNode={moveNode}
                 />
               </div>
-              {/* Node detail panel */}
+              {/* Node detail panel — mobile: full-screen overlay, desktop: side panel */}
               {wbsPanel && (
-                <div className="ml-4 w-80 shrink-0 rounded-xl border border-brand-stone shadow-sm">
-                  <WBSNodePanel
-                    node={wbsPanel}
-                    allNodes={wbsNodes}
-                    deps={deps}
-                    profiles={profiles}
-                    onClose={() => setWbsPanel(null)}
-                    onUpdate={async (id, updates) => {
-                      const result = await updateNode(id, updates)
-                      setWbsPanel(prev => prev ? { ...prev, ...updates } : null)
-                      return result
-                    }}
-                    onDelete={async id => {
-                      await deleteNode(id)
-                      setWbsPanel(null)
-                    }}
-                    onCreateDependency={async (payload) => createDependency(payload)}
-                    onDeleteDependency={async (depId) => deleteDependency(depId)}
-                  />
-                </div>
+                <>
+                  {/* Mobile overlay */}
+                  <div className="fixed inset-0 z-50 overflow-y-auto bg-white sm:hidden">
+                    <WBSNodePanel
+                      node={wbsPanel}
+                      allNodes={wbsNodes}
+                      deps={deps}
+                      profiles={profiles}
+                      onClose={() => setWbsPanel(null)}
+                      onUpdate={async (id, updates) => {
+                        const result = await updateNode(id, updates)
+                        setWbsPanel(prev => prev ? { ...prev, ...updates } : null)
+                        return result
+                      }}
+                      onDelete={async id => {
+                        await deleteNode(id)
+                        setWbsPanel(null)
+                      }}
+                      onCreateDependency={async (payload) => createDependency(payload)}
+                      onDeleteDependency={async (depId) => deleteDependency(depId)}
+                    />
+                  </div>
+                  {/* Desktop side panel */}
+                  <div className="hidden sm:block ml-4 w-80 shrink-0 rounded-xl border border-brand-stone shadow-sm">
+                    <WBSNodePanel
+                      node={wbsPanel}
+                      allNodes={wbsNodes}
+                      deps={deps}
+                      profiles={profiles}
+                      onClose={() => setWbsPanel(null)}
+                      onUpdate={async (id, updates) => {
+                        const result = await updateNode(id, updates)
+                        setWbsPanel(prev => prev ? { ...prev, ...updates } : null)
+                        return result
+                      }}
+                      onDelete={async id => {
+                        await deleteNode(id)
+                        setWbsPanel(null)
+                      }}
+                      onCreateDependency={async (payload) => createDependency(payload)}
+                      onDeleteDependency={async (depId) => deleteDependency(depId)}
+                    />
+                  </div>
+                </>
               )}
             </div>
           ) : (
@@ -342,6 +381,7 @@ export function ProjectDetail({
         open={panel.open}
         task={panel.task}
         isNew={panel.isNew}
+        defaultStartDate={panel.defaultDate}
         profiles={profiles}
         onClose={closePanel}
         onSave={handleSaveTask}

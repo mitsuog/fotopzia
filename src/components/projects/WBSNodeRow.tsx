@@ -34,7 +34,7 @@ const LEVEL_INDENT: Record<WBSLevel, number> = {
 }
 
 const LEVEL_LABELS: Record<WBSLevel, string> = {
-  macro: 'Macro',
+  macro: 'Fase',
   activity: 'Actividad',
   task: 'Tarea',
 }
@@ -50,6 +50,13 @@ interface WBSNodeRowProps {
   onDelete: () => Promise<unknown>
   onOpen: () => void
   onAddChild: (level: WBSLevel) => void
+  // Drag-and-drop props
+  isDragTarget?: boolean
+  dropPosition?: 'before' | 'inside' | 'after'
+  onDragStart?: () => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDrop?: (e: React.DragEvent) => void
+  onDragEnd?: () => void
 }
 
 export function WBSNodeRow({
@@ -63,6 +70,12 @@ export function WBSNodeRow({
   onDelete,
   onOpen,
   onAddChild,
+  isDragTarget,
+  dropPosition,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }: WBSNodeRowProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
@@ -112,19 +125,32 @@ export function WBSNodeRow({
       ? 'border-l-brand-gold'
       : 'border-l-transparent'
 
+  const dropIndicatorClass = isDragTarget
+    ? dropPosition === 'inside'
+      ? 'ring-2 ring-brand-gold/60 bg-brand-gold/5'
+      : dropPosition === 'before'
+        ? 'border-t-2 border-t-brand-gold'
+        : 'border-b-2 border-b-brand-gold'
+    : ''
+
   return (
     <div
-      className={`group relative flex items-center gap-2 rounded-lg border-l-2 py-1.5 pr-2 transition-colors hover:bg-brand-canvas/60 ${levelBorderColor}`}
-      style={{ paddingLeft: `${indent + 8}px` }}
+      draggable={!!onDragStart}
+      className={`group relative flex items-center gap-2 rounded-lg border-l-2 py-1.5 pr-2 transition-colors hover:bg-brand-canvas/60 ${levelBorderColor} ${dropIndicatorClass}`}
+      style={{ paddingLeft: `${indent + 8}px`, minHeight: '44px' }}
+      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart?.() }}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
     >
-      {/* Drag handle (visual only for now) */}
+      {/* Drag handle */}
       <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-gray-300 opacity-0 group-hover:opacity-100" />
 
       {/* Expand toggle */}
       <button
         type="button"
         onClick={onToggleExpand}
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-brand-navy/50 hover:text-brand-navy"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded text-brand-navy/50 hover:text-brand-navy -ml-1"
       >
         {hasChildren ? (
           isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />
@@ -140,7 +166,7 @@ export function WBSNodeRow({
         <button
           type="button"
           onClick={handleStatusClick}
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
             node.status === 'done'
               ? 'border-emerald-500 bg-emerald-500 text-white'
               : 'border-gray-300 hover:border-brand-navy'
@@ -171,7 +197,7 @@ export function WBSNodeRow({
               if (e.key === 'Enter') inputRef.current?.blur()
               if (e.key === 'Escape') { setTitleValue(node.title); setEditingTitle(false) }
             }}
-            className="w-full rounded border border-brand-gold/60 bg-white px-1.5 py-0.5 text-sm text-brand-navy outline-none"
+            className="w-full rounded border border-brand-gold/60 bg-white px-1.5 py-0.5 text-base sm:text-sm text-brand-navy outline-none"
           />
         ) : (
           <span
@@ -218,12 +244,12 @@ export function WBSNodeRow({
         <button
           type="button"
           onClick={() => setMenuOpen(v => !v)}
-          className="rounded p-0.5 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-brand-navy"
+          className="rounded p-1.5 text-gray-400 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 hover:text-brand-navy"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-6 z-50 min-w-[160px] rounded-lg border border-brand-stone bg-white py-1 shadow-lg">
+          <div className="absolute right-0 top-6 z-50 min-w-[160px] max-h-[80vh] overflow-y-auto rounded-lg border border-brand-stone bg-white py-1 shadow-lg">
             <button
               type="button"
               onClick={() => { setMenuOpen(false); onOpen() }}
@@ -248,7 +274,7 @@ export function WBSNodeRow({
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-brand-navy hover:bg-brand-canvas"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Agregar {node.level === 'macro' ? 'actividad' : 'tarea'}
+                Agregar {node.level === 'macro' ? 'actividad' : 'tarea'} dentro
               </button>
             )}
             <div className="mx-3 my-1 border-t border-brand-stone" />

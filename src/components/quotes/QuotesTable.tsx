@@ -68,7 +68,7 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1">
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
           {STATUS_TABS.map(tab => (
             <button
               key={tab.value}
@@ -102,7 +102,42 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-brand-stone bg-brand-paper">
+      {/* Mobile: card stack */}
+      <div className="block sm:hidden space-y-2">
+        {filtered.length === 0 ? (
+          <p className="py-14 text-center text-sm text-gray-400 italic">
+            {search || activeStatus !== 'all' ? 'Sin cotizaciones que coincidan' : 'No hay cotizaciones aún.'}
+          </p>
+        ) : (
+          filtered.map(quote => (
+            <Link
+              key={quote.id}
+              href={`/quotes/${quote.id}`}
+              className="flex items-start gap-3 rounded-xl border border-brand-stone bg-brand-paper p-3 shadow-sm"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[10px] text-gray-400">{quote.quote_number}</p>
+                <p className="font-semibold text-brand-navy truncate">{quote.title}</p>
+                {quote.contact && (
+                  <p className="text-xs text-gray-500">{quote.contact.first_name} {quote.contact.last_name}</p>
+                )}
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <QuoteStatusBadge status={quote.status} />
+                <p className="font-semibold text-sm tabular-nums text-brand-navy">
+                  ${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 0 })}
+                </p>
+                {quote.valid_until && (
+                  <p className="text-[10px] text-gray-400">{format(new Date(quote.valid_until), 'd MMM', { locale: es })}</p>
+                )}
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block overflow-hidden rounded-xl border border-brand-stone bg-brand-paper">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-sm">
             <thead>

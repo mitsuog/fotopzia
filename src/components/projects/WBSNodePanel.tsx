@@ -19,11 +19,11 @@ const PRIORITY_OPTIONS = [
   { value: 'urgent', label: 'Urgente' },
 ] as const
 
-const DEP_TYPE_OPTIONS: { value: DependencyType; label: string; desc: string }[] = [
-  { value: 'FS', label: 'FS', desc: 'Fin a Inicio (predeterminado)' },
-  { value: 'SS', label: 'SS', desc: 'Inicio a Inicio' },
-  { value: 'FF', label: 'FF', desc: 'Fin a Fin' },
-  { value: 'SF', label: 'SF', desc: 'Inicio a Fin' },
+const DEP_TYPE_OPTIONS: { value: DependencyType; label: string }[] = [
+  { value: 'FS', label: 'Finaliza → Inicia (más común)' },
+  { value: 'SS', label: 'Inicia → Inicia' },
+  { value: 'FF', label: 'Finaliza → Finaliza' },
+  { value: 'SF', label: 'Inicia → Finaliza' },
 ]
 
 const DEP_TYPE_COLORS: Record<DependencyType, string> = {
@@ -158,7 +158,7 @@ export function WBSNodePanel({
     }
   }
 
-  const levelLabel = node.level === 'macro' ? 'Macroactividad' : node.level === 'activity' ? 'Actividad' : 'Tarea'
+  const levelLabel = node.level === 'macro' ? 'Fase / Etapa' : node.level === 'activity' ? 'Actividad' : 'Tarea'
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -269,7 +269,7 @@ export function WBSNodePanel({
 
         {/* Progress mode */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-brand-navy">Modo de avance</label>
+          <label className="mb-1 block text-xs font-medium text-brand-navy">¿Cómo se calcula el avance?</label>
           <div className="flex gap-2">
             {(['computed', 'manual'] as const).map(mode => (
               <button
@@ -282,7 +282,7 @@ export function WBSNodePanel({
                     : 'border-brand-stone text-brand-navy hover:border-brand-navy'
                 }`}
               >
-                {mode === 'computed' ? 'Automático' : 'Manual'}
+                {mode === 'computed' ? 'Automático (según tareas)' : 'Manual (yo defino %)'}
               </button>
             ))}
           </div>
@@ -317,7 +317,7 @@ export function WBSNodePanel({
         {node.level === 'task' && (
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-navy/70">Dependencias</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-navy/70">Esta tarea depende de...</h3>
               <button
                 type="button"
                 onClick={() => { setAddDepMode(v => !v); setDepError(null) }}
@@ -342,7 +342,10 @@ export function WBSNodePanel({
                     key={dep.id}
                     className="flex items-center gap-2 rounded-lg border border-brand-stone/70 bg-brand-paper/50 px-3 py-2"
                   >
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${DEP_TYPE_COLORS[dep.dep_type as DependencyType]}`}>
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${DEP_TYPE_COLORS[dep.dep_type as DependencyType]}`}
+                      title={DEP_TYPE_OPTIONS.find(o => o.value === dep.dep_type)?.label ?? dep.dep_type}
+                    >
                       {dep.dep_type}
                     </span>
                     <span className="flex-1 truncate text-xs text-gray-700">
@@ -379,14 +382,14 @@ export function WBSNodePanel({
                       </select>
                     </div>
                     <div>
-                      <label className="mb-0.5 block text-[10px] font-medium text-brand-navy">Tipo</label>
+                      <label className="mb-0.5 block text-[10px] font-medium text-brand-navy">Tipo de relación</label>
                       <select
                         value={newDepType}
                         onChange={e => setNewDepType(e.target.value as DependencyType)}
                         className="w-full rounded border border-brand-stone px-1.5 py-1 text-xs text-brand-navy outline-none"
                       >
                         {DEP_TYPE_OPTIONS.map(o => (
-                          <option key={o.value} value={o.value}>{o.label} — {o.desc}</option>
+                          <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                       </select>
                     </div>
@@ -406,7 +409,7 @@ export function WBSNodePanel({
                   </div>
                   <div>
                     <label className="mb-0.5 block text-[10px] font-medium text-brand-navy">
-                      Desfase (días, + = retraso, - = adelanto)
+                      Días de desfase
                     </label>
                     <input
                       type="number"
@@ -414,6 +417,7 @@ export function WBSNodePanel({
                       onChange={e => setNewDepLag(Number(e.target.value))}
                       className="w-full rounded border border-brand-stone px-1.5 py-1 text-xs text-brand-navy outline-none"
                     />
+                    <p className="mt-0.5 text-[10px] text-gray-400">Días entre el evento de la actividad anterior y el inicio de esta (positivo = retraso, negativo = adelanto)</p>
                   </div>
                   {depError && (
                     <p className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">{depError}</p>

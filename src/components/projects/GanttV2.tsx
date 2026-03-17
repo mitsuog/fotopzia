@@ -11,12 +11,11 @@ import { DependencyLayer } from './DependencyLayer'
 const ROW_HEIGHT = 36
 const LEFT_PANEL_WIDTH = 280
 
-const SCALE_LABELS: Record<GanttScale, string> = {
+const SCALE_LABELS: Partial<Record<GanttScale, string>> = {
   weekly: 'Semana',
   monthly: 'Mes',
-  quarterly: 'Trimestre',
-  yearly: 'Año',
 }
+const VISIBLE_SCALES: GanttScale[] = ['weekly', 'monthly']
 
 interface GanttV2Props {
   nodes: WBSNode[]
@@ -40,6 +39,7 @@ export function GanttV2({ nodes, tree, dependencies, profiles, getNodeProgress, 
     () => new Set(nodes.filter(n => n.level !== 'task').map(n => n.id)),
   )
   const timelineRef = useRef<HTMLDivElement>(null)
+  const touchStartXRef = useRef<number>(0)
 
   const { columns, windowEnd } = useMemo(
     () => buildColumns(scale, windowStart),
@@ -114,12 +114,19 @@ export function GanttV2({ nodes, tree, dependencies, profiles, getNodeProgress, 
   const showToday = todayFraction >= 0 && todayFraction <= 1
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-brand-stone bg-white">
+    <>
+      {/* Mobile fallback */}
+      <div className="block sm:hidden rounded-xl border border-brand-stone bg-white p-8 text-center">
+        <Calendar className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+        <p className="text-sm font-medium text-gray-500">Vista Gantt disponible en tablet o escritorio</p>
+        <p className="mt-1 text-xs text-gray-400">Usa la vista Árbol para gestionar tu EDT en móvil.</p>
+      </div>
+    <div className="hidden sm:flex flex-col overflow-hidden rounded-xl border border-brand-stone bg-white">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 border-b border-brand-stone px-4 py-2">
         {/* Scale tabs */}
         <div className="flex rounded-lg border border-brand-stone overflow-hidden">
-          {(Object.keys(SCALE_LABELS) as GanttScale[]).map(s => (
+          {VISIBLE_SCALES.map(s => (
             <button
               key={s}
               type="button"
@@ -157,6 +164,19 @@ export function GanttV2({ nodes, tree, dependencies, profiles, getNodeProgress, 
           >
             <ChevronRight className="h-4 w-4" />
           </button>
+          {nodes.some(n => n.start_at || n.due_at) && (
+            <button
+              type="button"
+              onClick={() => {
+                const dates = nodes.flatMap(n => [n.start_at, n.due_at]).filter(Boolean).map(d => new Date(d!).getTime())
+                if (dates.length > 0) setWindowStart(snapWindowStart(new Date(Math.min(...dates)), scale))
+              }}
+              className="rounded border border-brand-stone px-2 py-1 text-xs text-brand-navy hover:border-brand-gold"
+              title="Ver todos los elementos del proyecto"
+            >
+              ↔ Encuadrar
+            </button>
+          )}
         </div>
       </div>
 
@@ -205,7 +225,17 @@ export function GanttV2({ nodes, tree, dependencies, profiles, getNodeProgress, 
         </div>
 
         {/* Right panel: timeline */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto" ref={timelineRef}>
+        <div
+          className="flex-1 overflow-x-auto overflow-y-auto touch-pan-x"
+          ref={timelineRef}
+          onTouchStart={e => { touchStartXRef.current = e.touches[0].clientX }}
+          onTouchMove={e => {
+            if (!timelineRef.current) return
+            const dx = touchStartXRef.current - e.touches[0].clientX
+            timelineRef.current.scrollLeft += dx
+            touchStartXRef.current = e.touches[0].clientX
+          }}
+        >
           {/* Timescale header */}
           <div className="sticky top-0 z-30 bg-white">
             <GanttTimescale scale={scale} windowStart={windowStart} columns={columns} />
@@ -287,10 +317,12 @@ export function GanttV2({ nodes, tree, dependencies, profiles, getNodeProgress, 
               nodeBarMap={nodeBarMap}
               totalWidthPx={timelineRef.current?.clientWidth ?? 800}
               totalHeightPx={totalHeightPx}
+              nodes={nodes}
             />
           </div>
         </div>
       </div>
     </div>
+    </>
   )
 }

@@ -1,4 +1,11 @@
 @import "tailwindcss";
+
+/* iOS Safari: prevent auto-zoom on input focus when font-size < 16px */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -154,4 +161,31 @@
   html {
     @apply font-sans;
   }
+}
+
+/* FullCalendar list view — mobile polish */
+.fc-list-day-cushion {
+  background-color: var(--color-brand-canvas) !important;
+  padding: 0.5rem 1rem !important;
+}
+.fc-list-day-text,
+.fc-list-day-side-text {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--color-brand-navy) !important;
+}
+.fc-list-event-time {
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+  white-space: nowrap !important;
+}
+.fc-list-event:hover td {
+  background-color: var(--color-brand-canvas) !important;
+  cursor: pointer;
+}
+.fc-list-empty-cushion {
+  font-size: 0.875rem;
+  color: #9ca3af;
 }

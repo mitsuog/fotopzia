@@ -22,6 +22,7 @@ interface TaskSidePanelProps {
   open: boolean
   task: ProjectTask | null
   isNew?: boolean
+  defaultStartDate?: string
   profiles: TeamProfile[]
   onClose: () => void
   onSave: (data: Partial<ProjectTask> & { title: string }) => Promise<void>
@@ -44,6 +45,7 @@ export function TaskSidePanel({
   open,
   task,
   isNew,
+  defaultStartDate,
   profiles,
   onClose,
   onSave,
@@ -68,7 +70,7 @@ export function TaskSidePanel({
       setStatus(task?.status ?? 'pending')
       setPriority(task?.priority ?? 'medium')
       setAssignedTo(task?.assigned_to ?? '')
-      setStartAt(task?.start_at ? task.start_at.slice(0, 10) : '')
+      setStartAt(task?.start_at ? task.start_at.slice(0, 10) : (defaultStartDate ?? ''))
       setDueAt(task?.due_at ? task.due_at.slice(0, 10) : '')
       setError(null)
       setConfirmDelete(false)
@@ -125,7 +127,7 @@ export function TaskSidePanel({
 
       {/* Panel */}
       <div
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-full sm:max-w-md flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
@@ -145,7 +147,7 @@ export function TaskSidePanel({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-5 py-2">
+        <div className="flex-1 overflow-y-auto px-5 py-2 pb-8">
           {/* Title */}
           <div className="py-3 border-b border-gray-100">
             <textarea
