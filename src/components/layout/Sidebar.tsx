@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Image from 'next/image'
 import Link from 'next/link'
@@ -17,11 +17,35 @@ import {
   LogOut,
   BriefcaseBusiness,
   UserPlus,
+  DollarSign,
+  Package,
+  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import type { LucideIcon } from 'lucide-react'
 
-const NAV_ITEMS = [
+interface NavItem {
+  href: string
+  label: string
+  icon: LucideIcon
+}
+
+interface NavSection {
+  key: string
+  label: string
+  icon: LucideIcon
+  basePath: string
+  children: NavItem[]
+}
+
+type NavEntry = NavItem | { section: NavSection }
+
+function isSection(entry: NavEntry): entry is { section: NavSection } {
+  return 'section' in entry
+}
+
+const NAV_ITEMS: NavEntry[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/crm', label: 'CRM', icon: Users2 },
   { href: '/crm-calendar', label: 'Agenda CRM', icon: CalendarClock },
@@ -31,7 +55,46 @@ const NAV_ITEMS = [
   { href: '/projects', label: 'Proyectos', icon: BriefcaseBusiness },
   { href: '/calendar', label: 'Calendario', icon: CalendarDays },
   { href: '/portfolios', label: 'Portafolios', icon: Images },
-  { href: '/settings', label: 'Configuracion', icon: Settings2 },
+  {
+    section: {
+      key: 'finances',
+      label: 'Finanzas',
+      icon: DollarSign,
+      basePath: '/finances',
+      children: [
+        { href: '/finances', label: 'Resumen', icon: DollarSign },
+        { href: '/finances/income', label: 'Ingresos', icon: DollarSign },
+        { href: '/finances/expenses', label: 'Egresos', icon: DollarSign },
+        { href: '/finances/payroll', label: 'Nóminas', icon: DollarSign },
+        { href: '/finances/reports', label: 'Reportes', icon: DollarSign },
+      ],
+    },
+  },
+  {
+    section: {
+      key: 'inventory',
+      label: 'Inventario',
+      icon: Package,
+      basePath: '/inventory',
+      children: [
+        { href: '/inventory', label: 'Equipos', icon: Package },
+        { href: '/inventory/categories', label: 'Categorías', icon: Package },
+      ],
+    },
+  },
+  {
+    section: {
+      key: 'settings',
+      label: 'Configuración',
+      icon: Settings2,
+      basePath: '/settings',
+      children: [
+        { href: '/settings', label: 'General', icon: Settings2 },
+        { href: '/settings/catalogo', label: 'Catálogo de Servicios', icon: Settings2 },
+        { href: '/settings/resources', label: 'Recursos del Estudio', icon: Settings2 },
+      ],
+    },
+  },
 ]
 
 interface SidebarProps {
@@ -64,6 +127,7 @@ export function Sidebar({ user, className, onNavigate, collapsed = false }: Side
   const avatarUrl = user.profile?.avatar_url ?? null
   const initials = getInitials(fullName)
   const [avatarFailed, setAvatarFailed] = useState(false)
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
 
   async function handleLogout() {
     const supabase = createClient()
@@ -73,8 +137,48 @@ export function Sidebar({ user, className, onNavigate, collapsed = false }: Side
 
   function isActive(href: string): boolean {
     if (href === '/crm') return pathname === '/crm' || pathname.startsWith('/crm/')
+    if (href === '/finances') return pathname === '/finances'
+    if (href === '/inventory') return pathname === '/inventory'
     return pathname === href || pathname.startsWith(href + '/')
   }
+
+  function isSectionActive(basePath: string): boolean {
+    return pathname === basePath || pathname.startsWith(basePath + '/')
+  }
+
+  function toggleSection(key: string) {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  function isSectionOpen(key: string, basePath: string): boolean {
+    if (openSections[key] !== undefined) return openSections[key]
+    return isSectionActive(basePath)
+  }
+
+  const navItemClass = (active: boolean) =>
+    cn(
+      'group relative flex h-11 items-center rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/45 active:ring-1 active:ring-white/25',
+      collapsed ? 'mx-auto w-12 justify-center gap-0 px-0' : 'gap-3.5 px-3.5',
+      active
+        ? 'bg-brand-gold/25 text-white ring-1 ring-brand-gold/50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
+        : 'text-white/70 hover:bg-white/14 hover:text-white active:bg-white/18 active:text-white',
+    )
+
+  const navIconClass = (active: boolean) =>
+    cn(
+      'shrink-0 transition-colors',
+      collapsed ? 'h-[22px] w-[22px]' : 'h-[18px] w-[18px]',
+      active
+        ? 'text-brand-gold'
+        : 'text-white/55 group-hover:text-brand-gold/85 group-active:text-brand-gold/85',
+    )
+
+  const tooltipClass = cn(
+    'pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[100] -translate-y-1/2 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white shadow-lg transition-all duration-150',
+    collapsed
+      ? 'translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-active:translate-x-0 group-active:opacity-100'
+      : 'hidden',
+  )
 
   return (
     <aside
@@ -132,43 +236,105 @@ export function Sidebar({ user, className, onNavigate, collapsed = false }: Side
       </div>
 
       <nav className={cn('flex-1 space-y-1 overflow-x-hidden overflow-y-auto p-3 pt-4', collapsed && 'px-2')}>
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={onNavigate}
-            aria-label={label}
-            title={collapsed ? label : undefined}
-            className={cn(
-              'group relative flex h-11 items-center rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/45 active:ring-1 active:ring-white/25',
-              collapsed ? 'mx-auto w-12 justify-center gap-0 px-0' : 'gap-3.5 px-3.5',
-              isActive(href)
-                ? 'bg-brand-gold/25 text-white ring-1 ring-brand-gold/50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
-                : 'text-white/70 hover:bg-white/14 hover:text-white active:bg-white/18 active:text-white',
-            )}
-          >
-            <Icon
-              className={cn(
-                'shrink-0 transition-colors',
-                collapsed ? 'h-[22px] w-[22px]' : 'h-[18px] w-[18px]',
-                isActive(href)
-                  ? 'text-brand-gold'
-                  : 'text-white/55 group-hover:text-brand-gold/85 group-active:text-brand-gold/85',
-              )}
-            />
-            {!collapsed && <span className="whitespace-nowrap">{label}</span>}
-            <span
-              className={cn(
-                'pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[100] -translate-y-1/2 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white shadow-lg transition-all duration-150',
-                collapsed
-                  ? 'translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-active:translate-x-0 group-active:opacity-100'
-                  : 'hidden',
-              )}
+        {NAV_ITEMS.map((entry, idx) => {
+          if (isSection(entry)) {
+            const { section } = entry
+            const SectionIcon = section.icon
+            const sectionActive = isSectionActive(section.basePath)
+            const sectionOpen = isSectionOpen(section.key, section.basePath)
+
+            if (collapsed) {
+              // In collapsed mode: show section icon with flyout tooltip showing section label
+              return (
+                <div key={section.key} className="relative">
+                  <button
+                    type="button"
+                    aria-label={section.label}
+                    title={section.label}
+                    onClick={() => {
+                      toggleSection(section.key)
+                      router.push(section.children[0].href)
+                    }}
+                    className={navItemClass(sectionActive)}
+                  >
+                    <SectionIcon className={navIconClass(sectionActive)} />
+                    <span className={tooltipClass}>{section.label}</span>
+                  </button>
+                </div>
+              )
+            }
+
+            return (
+              <div key={section.key}>
+                <button
+                  type="button"
+                  onClick={() => toggleSection(section.key)}
+                  className={cn(
+                    'group relative flex h-11 w-full items-center rounded-lg text-sm font-medium transition-all gap-3.5 px-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/45',
+                    sectionActive
+                      ? 'text-white/90'
+                      : 'text-white/70 hover:bg-white/14 hover:text-white',
+                  )}
+                >
+                  <SectionIcon
+                    className={cn(
+                      'h-[18px] w-[18px] shrink-0 transition-colors',
+                      sectionActive ? 'text-brand-gold' : 'text-white/55 group-hover:text-brand-gold/85',
+                    )}
+                  />
+                  <span className="flex-1 whitespace-nowrap text-left">{section.label}</span>
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0 transition-transform duration-200 text-white/40',
+                      sectionOpen && 'rotate-180',
+                    )}
+                  />
+                </button>
+
+                {sectionOpen && (
+                  <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
+                    {section.children.map(child => {
+                      const childActive = isActive(child.href)
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={onNavigate}
+                          className={cn(
+                            'flex h-9 items-center rounded-lg px-3 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/45',
+                            childActive
+                              ? 'bg-brand-gold/20 text-white font-medium'
+                              : 'text-white/60 hover:bg-white/10 hover:text-white/90',
+                          )}
+                        >
+                          {child.label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          // Regular nav item
+          const { href, label, icon: Icon } = entry as NavItem
+          const active = isActive(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onNavigate}
+              aria-label={label}
+              title={collapsed ? label : undefined}
+              className={navItemClass(active)}
             >
-              {label}
-            </span>
-          </Link>
-        ))}
+              <Icon className={navIconClass(active)} />
+              {!collapsed && <span className="whitespace-nowrap">{label}</span>}
+              <span className={tooltipClass}>{label}</span>
+            </Link>
+          )
+        })}
       </nav>
 
       <div className={cn('border-t border-white/10', collapsed ? 'p-2' : 'p-3')}>

@@ -32,10 +32,12 @@ interface ContactOption {
   company_name: string | null
 }
 
-interface ResourceOption {
+export interface ResourceOption {
   id: string
   name: string
   type: string
+  equipment_item_id?: string | null
+  equipment_item?: { id: string; status: string } | null
 }
 
 interface CalendarEventRow {
@@ -136,7 +138,7 @@ export function CalendarView({ mode, initialEvents, initialContacts = [], initia
     queryFn: async () => {
       const { data, error } = await supabase
         .from('resources')
-        .select('id, name, type, is_active')
+        .select('id, name, type, is_active, equipment_item_id, equipment_item:equipment_items(id, status)')
         .eq('is_active', true)
         .order('name')
       if (error) throw error
@@ -366,18 +368,28 @@ export function CalendarView({ mode, initialEvents, initialContacts = [], initia
                   {sortedResources.length === 0 ? (
                     <p className="text-xs text-gray-500">No hay recursos activos disponibles.</p>
                   ) : (
-                    sortedResources.map(resource => (
-                      <label key={resource.id} className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={form.resourceIds.includes(resource.id)}
-                          onChange={() => toggleResource(resource.id)}
-                          className="h-4 w-4 rounded border-gray-300 text-brand-navy focus:ring-brand-gold"
-                        />
-                        <span>{resource.name}</span>
-                        <span className="text-[11px] uppercase text-gray-400">({resource.type})</span>
-                      </label>
-                    ))
+                    sortedResources.map(resource => {
+                      const isLinked = !!resource.equipment_item_id
+                      const isInUse = isLinked && resource.equipment_item?.status === 'en_uso'
+                      return (
+                        <label key={resource.id} className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={form.resourceIds.includes(resource.id)}
+                            onChange={() => toggleResource(resource.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-brand-navy focus:ring-brand-gold"
+                          />
+                          {isLinked && (
+                            <span
+                              className={`h-2 w-2 shrink-0 rounded-full ${isInUse ? 'bg-amber-400' : 'bg-emerald-500'}`}
+                              title={isInUse ? 'En uso' : 'Disponible'}
+                            />
+                          )}
+                          <span>{resource.name}</span>
+                          <span className="text-[11px] uppercase text-gray-400">({resource.type})</span>
+                        </label>
+                      )
+                    }))
                   )}
                 </div>
               </div>

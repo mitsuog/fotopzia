@@ -1,4 +1,4 @@
-﻿import { CalendarView } from '@/components/calendar/CalendarView'
+﻿import { CalendarView, type ResourceOption } from '@/components/calendar/CalendarView'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { createClient } from '@/lib/supabase/server'
 
@@ -17,7 +17,11 @@ export default async function CalendarPage() {
       .select('id, title, start_at, end_at, type, description, color, location, event_resources(resource:resources(name))')
       .eq('type', 'production_session')
       .order('start_at'),
-    supabase.from('resources').select('id, name, type, is_active').eq('is_active', true).order('name'),
+    supabase
+      .from('resources')
+      .select('id, name, type, is_active, equipment_item_id, equipment_item:equipment_items(id, status)')
+      .eq('is_active', true)
+      .order('name'),
   ])
 
   const calendarEvents = (events ?? []).map(ev => {
@@ -41,7 +45,7 @@ export default async function CalendarPage() {
       <CalendarView
         mode="operations"
         initialEvents={calendarEvents}
-        initialResources={(resources ?? []) as { id: string; name: string; type: string }[]}
+        initialResources={(resources ?? []) as ResourceOption[]}
       />
     </div>
   )

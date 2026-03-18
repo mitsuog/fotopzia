@@ -23,9 +23,10 @@ import { WBSNodePanel } from './WBSNodePanel'
 import { GanttV2 } from './GanttV2'
 import { ProjectProgressRing } from './ProjectProgressRing'
 import { ProjectCalendarTab } from './ProjectCalendarTab'
+import { ProjectFinancesTab } from './ProjectFinancesTab'
 
 type ViewMode = 'grid' | 'kanban' | 'gantt'
-type Tab = 'tasks' | 'wbs' | 'deliverables' | 'calendar'
+type Tab = 'tasks' | 'wbs' | 'deliverables' | 'calendar' | 'finances'
 type WBSView = 'tree' | 'gantt'
 
 const STAGE_OPTIONS: { value: string; label: string }[] = [
@@ -161,6 +162,7 @@ export function ProjectDetail({
           { id: 'wbs' as Tab, label: `Estructura (${wbsNodes.length})` },
           { id: 'calendar' as Tab, label: 'Calendario' },
           { id: 'deliverables' as Tab, label: `Entregables (${deliverables.length})` },
+          { id: 'finances' as Tab, label: 'Finanzas' },
         ] as const).map(t => (
           <button
             key={t.id}
@@ -374,6 +376,10 @@ export function ProjectDetail({
             />
           )}
         </>
+      )}
+
+      {tab === 'finances' && (
+        <ProjectFinancesTab projectId={p.id} />
       )}
 
       {/* Side panel for tasks */}

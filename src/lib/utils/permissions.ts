@@ -9,6 +9,9 @@ export type Permission =
   | 'manage_calendar' | 'view_calendar'
   | 'manage_portfolios' | 'view_portfolios' | 'upload_media'
   | 'view_portal'
+  | 'view_finances' | 'manage_finances'
+  | 'view_admin_finances' | 'manage_admin_finances'
+  | 'view_inventory' | 'manage_inventory'
 
 export const PERMISSIONS: Record<AppRole, Permission[]> = {
   admin: [
@@ -20,6 +23,9 @@ export const PERMISSIONS: Record<AppRole, Permission[]> = {
     'manage_projects', 'view_projects',
     'manage_calendar', 'view_calendar',
     'manage_portfolios', 'view_portfolios', 'upload_media',
+    'view_finances', 'manage_finances',
+    'view_admin_finances', 'manage_admin_finances',
+    'view_inventory', 'manage_inventory',
   ],
   project_manager: [
     'manage_crm', 'view_crm',
@@ -29,6 +35,8 @@ export const PERMISSIONS: Record<AppRole, Permission[]> = {
     'manage_projects', 'view_projects',
     'manage_calendar', 'view_calendar',
     'manage_portfolios', 'view_portfolios', 'upload_media',
+    'view_finances', 'manage_finances',
+    'view_inventory', 'manage_inventory',
   ],
   operator: [
     'manage_projects', 'view_projects',
@@ -38,6 +46,7 @@ export const PERMISSIONS: Record<AppRole, Permission[]> = {
     'view_approvals',
     'manage_calendar', 'view_calendar',
     'upload_media', 'view_portfolios',
+    'view_inventory',
   ],
   client: ['view_portal'],
 }
