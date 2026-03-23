@@ -142,7 +142,7 @@ export function CalendarView({ mode, initialEvents, initialContacts = [], initia
         .eq('is_active', true)
         .order('name')
       if (error) throw error
-      return (data ?? []) as ResourceOption[]
+      return (data ?? []) as unknown as ResourceOption[]
     },
     initialData: initialResources,
   })
@@ -390,7 +390,7 @@ export function CalendarView({ mode, initialEvents, initialContacts = [], initia
                         </label>
                       )
                     }))
-                  )}
+                  }
                 </div>
               </div>
 

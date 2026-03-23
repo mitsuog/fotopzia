@@ -28,7 +28,7 @@ export default async function ResourcesSettingsPage() {
         badge="Configuración"
       />
       <ResourcesPageClient
-        initialResources={(resources ?? []) as StudioResource[]}
+        initialResources={(resources ?? []) as unknown as StudioResource[]}
         equipmentItems={(equipmentItems ?? []) as { id: string; name: string; asset_tag: string; status: string }[]}
       />
     </div>

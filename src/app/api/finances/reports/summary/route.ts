@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
   for (const e of expensesRes.data ?? []) {
     const period = (e.date as string).slice(0, 7)
     ensurePeriod(period)
-    const cat = e.category as { is_fixed: boolean } | null
+    const cat = e.category as unknown as { is_fixed: boolean } | null
     const isFixed = cat?.is_fixed ?? false
     if (isFixed) {
       byPeriod[period].op_fixed += Number(e.amount)

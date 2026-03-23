@@ -45,7 +45,7 @@ export default async function CalendarPage() {
       <CalendarView
         mode="operations"
         initialEvents={calendarEvents}
-        initialResources={(resources ?? []) as ResourceOption[]}
+        initialResources={(resources ?? []) as unknown as ResourceOption[]}
       />
     </div>
   )
