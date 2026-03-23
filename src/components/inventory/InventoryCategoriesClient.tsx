@@ -84,7 +84,7 @@ export function InventoryCategoriesClient({ initialCategories }: Props) {
           onClick={() => setShowAdd(true)}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand-gold px-3 py-2 text-sm font-semibold text-white hover:bg-brand-gold-light"
         >
-          <Plus className="h-4 w-4" /> Nueva CategorÃ­a
+          <Plus className="h-4 w-4" /> Nueva Categoría
         </button>
       </div>
 
@@ -97,14 +97,14 @@ export function InventoryCategoriesClient({ initialCategories }: Props) {
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-3 text-left">Nombre</th>
-              <th className="px-4 py-3 text-left">DescripciÃ³n</th>
+              <th className="px-4 py-3 text-left">Descripción</th>
               <th className="px-4 py-3 text-left">Icono</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {categories.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Sin categorÃ­as</td></tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Sin categorias</td></tr>
             )}
             {categories.map(cat => (
               <tr key={cat.id} className="hover:bg-gray-50/50">
@@ -117,7 +117,7 @@ export function InventoryCategoriesClient({ initialCategories }: Props) {
                       <input value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} className={inputClass} />
                     </td>
                     <td className="px-4 py-2">
-                      <input value={editForm.icon} onChange={e => setEditForm(p => ({ ...p, icon: e.target.value }))} className={`${inputClass} w-16`} placeholder="ðŸ“·" />
+                      <input value={editForm.icon} onChange={e => setEditForm(p => ({ ...p, icon: e.target.value }))} className={`${inputClass} w-16`} placeholder="📦" />
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex gap-1">
@@ -133,8 +133,8 @@ export function InventoryCategoriesClient({ initialCategories }: Props) {
                 ) : (
                   <>
                     <td className="px-4 py-3 font-medium text-gray-800">{cat.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{cat.description ?? 'â€”'}</td>
-                    <td className="px-4 py-3 text-lg">{cat.icon ?? 'â€”'}</td>
+                    <td className="px-4 py-3 text-gray-500">{cat.description ?? '-'}</td>
+                    <td className="px-4 py-3 text-lg">{cat.icon ?? '-'}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 justify-end">
                         <button
@@ -161,7 +161,7 @@ export function InventoryCategoriesClient({ initialCategories }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-bold text-gray-800">Nueva CategorÃ­a</h2>
+              <h2 className="text-base font-bold text-gray-800">Nueva Categoría</h2>
               <button onClick={() => setShowAdd(false)} className="rounded-md p-1 hover:bg-gray-100"><X className="h-4 w-4" /></button>
             </div>
             <form onSubmit={handleAdd} className="space-y-3">
@@ -170,17 +170,17 @@ export function InventoryCategoriesClient({ initialCategories }: Props) {
                 <input required value={newForm.name} onChange={e => setNewForm(p => ({ ...p, name: e.target.value }))} className={inputClass} />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">DescripciÃ³n</label>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Descripción</label>
                 <input value={newForm.description} onChange={e => setNewForm(p => ({ ...p, description: e.target.value }))} className={inputClass} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">Icono (emoji)</label>
-                <input value={newForm.icon} onChange={e => setNewForm(p => ({ ...p, icon: e.target.value }))} placeholder="ðŸ“·" className={inputClass} />
+                <input value={newForm.icon} onChange={e => setNewForm(p => ({ ...p, icon: e.target.value }))} placeholder="📦" className={inputClass} />
               </div>
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setShowAdd(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
                 <button type="submit" disabled={saving} className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-white hover:bg-brand-gold-light disabled:opacity-60">
-                  {saving ? 'Guardandoâ€¦' : 'Guardar'}
+                  {saving ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </form>
