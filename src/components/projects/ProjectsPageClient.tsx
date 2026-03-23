@@ -18,9 +18,9 @@ const STAGE_COLORS: Record<string, string> = {
 }
 const STAGE_LABELS: Record<string, string> = {
   preproduccion: 'Pre-produccion',
-  primera_revision: '1a Revision',
+  primera_revision: '1a Revisión',
   produccion: 'Produccion',
-  segunda_revision: '2a Revision',
+  segunda_revision: '2a Revisión',
   entrega: 'Entrega',
   cierre: 'Cierre',
 }
@@ -388,8 +388,8 @@ export function ProjectsPageClient({ projects, portfolioProjects, profiles = [] 
         open={Boolean(projectToDelete)}
         title="Eliminar proyecto permanentemente"
         description={projectToDelete
-          ? `Esta accion eliminara el proyecto ${projectToDelete.title} de forma definitiva.`
-          : 'Esta accion eliminara el proyecto de forma definitiva.'}
+          ? `Esta acción eliminará el proyecto ${projectToDelete.title} de forma definitiva.`
+          : 'Esta acción eliminará el proyecto de forma definitiva.'}
         confirmLabel="Eliminar permanentemente"
         confirmVariant="danger"
         requireText="ELIMINAR"

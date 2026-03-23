@@ -90,7 +90,7 @@ export function PayrollPageClient({ initialEntries }: Props) {
             <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-3 text-left">Empleado</th>
               <th className="px-4 py-3 text-left">Rol</th>
-              <th className="px-4 py-3 text-left">PerÃƒÂ­odo</th>
+              <th className="px-4 py-3 text-left">PerÃ­odo</th>
               <th className="px-4 py-3 text-right">Base</th>
               <th className="px-4 py-3 text-right">Bonos</th>
               <th className="px-4 py-3 text-right">Deducc.</th>
@@ -106,8 +106,8 @@ export function PayrollPageClient({ initialEntries }: Props) {
             {entries.map(e => (
               <tr key={e.id} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3 font-medium text-gray-800">{e.employee_name}</td>
-                <td className="px-4 py-3 text-gray-500">{e.employee_role ?? 'Ã¢â‚¬â€'}</td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{fmtDate(e.period_start)} Ã¢â‚¬â€œ {fmtDate(e.period_end)}</td>
+                <td className="px-4 py-3 text-gray-500">{e.employee_role ?? 'â€”'}</td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{fmtDate(e.period_start)} â€“ {fmtDate(e.period_end)}</td>
                 <td className="px-4 py-3 text-right text-gray-700">{fmt(e.base_salary)}</td>
                 <td className="px-4 py-3 text-right text-emerald-600">{fmt(e.bonuses)}</td>
                 <td className="px-4 py-3 text-right text-red-500">{fmt(e.deductions)}</td>
@@ -128,7 +128,7 @@ export function PayrollPageClient({ initialEntries }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-bold text-gray-800">Nueva Entrada de NÃƒÂ³mina</h2>
+              <h2 className="text-base font-bold text-gray-800">Nueva Entrada de NÃ³mina</h2>
               <button onClick={() => setShowModal(false)} className="rounded-md p-1 hover:bg-gray-100"><X className="h-4 w-4" /></button>
             </div>
             <form onSubmit={handleSave} className="space-y-3">
@@ -146,12 +146,12 @@ export function PayrollPageClient({ initialEntries }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">PerÃƒÂ­odo inicio *</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">PerÃ­odo inicio *</label>
                   <input type="date" required value={form.period_start} onChange={e => setForm(p => ({ ...p, period_start: e.target.value }))}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">PerÃƒÂ­odo fin *</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">PerÃ­odo fin *</label>
                   <input type="date" required value={form.period_end} onChange={e => setForm(p => ({ ...p, period_end: e.target.value }))}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40" />
                 </div>
@@ -181,7 +181,7 @@ export function PayrollPageClient({ initialEntries }: Props) {
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
                 <button type="submit" disabled={saving} className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-white hover:bg-brand-gold-light disabled:opacity-60">
-                  {saving ? 'GuardandoÃ¢â‚¬Â¦' : 'Guardar'}
+                  {saving ? 'Guardandoâ€¦' : 'Guardar'}
                 </button>
               </div>
             </form>
@@ -191,8 +191,8 @@ export function PayrollPageClient({ initialEntries }: Props) {
 
       <ConfirmationDialog
         open={Boolean(entryToDelete)}
-        title="Eliminar entrada de nomina"
-        description="Esta accion eliminara la entrada de nomina de forma permanente."
+        title="Eliminar entrada de nómina"
+        description="Esta acción eliminará la entrada de nómina de forma permanente."
         confirmLabel="Eliminar"
         confirmVariant="danger"
         onClose={() => setEntryToDelete(null)}

@@ -60,10 +60,10 @@ export function ContractActions({
       const payload = await response.json().catch(() => ({ error: 'No fue posible ejecutar el workflow.' }))
       if (!response.ok) throw new Error(payload.error ?? 'No fue posible ejecutar el workflow.')
 
-      if (action === 'submit_approval') setSuccess('Contrato enviado a aprobacion interna.')
+      if (action === 'submit_approval') setSuccess('Contrato enviado a aprobación interna.')
       if (action === 'approve') setSuccess('Contrato aprobado internamente.')
       if (action === 'reject') setSuccess('Contrato rechazado internamente.')
-      if (action === 'return_to_review') setSuccess('Contrato regresado a revision con comentario.')
+      if (action === 'return_to_review') setSuccess('Contrato regresado a revisión con comentario.')
       window.location.reload()
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : 'No fue posible ejecutar el workflow.')
@@ -239,7 +239,7 @@ export function ContractActions({
               disabled={Boolean(loadingAction)}
               className="rounded-md border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy hover:bg-brand-paper disabled:opacity-50"
             >
-              {loadingAction === 'submit_approval' ? 'Enviando...' : 'Enviar a aprobacion'}
+              {loadingAction === 'submit_approval' ? 'Enviando...' : 'Enviar a aprobación'}
             </button>
           )}
 
@@ -271,7 +271,7 @@ export function ContractActions({
               disabled={Boolean(loadingAction)}
               className="rounded-md bg-brand-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-navy-light disabled:opacity-50"
             >
-              {loadingAction === 'send_signature' ? 'Enviando...' : 'Enviar a firma electronica'}
+              {loadingAction === 'send_signature' ? 'Enviando...' : 'Enviar a firma electrónica'}
             </button>
           )}
 
@@ -282,7 +282,7 @@ export function ContractActions({
               disabled={Boolean(loadingAction)}
               className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
             >
-              {loadingAction === 'return_to_review' ? 'Regresando...' : 'Regresar a revision'}
+              {loadingAction === 'return_to_review' ? 'Regresando...' : 'Regresar a revisión'}
             </button>
           )}
 
@@ -318,12 +318,12 @@ export function ContractActions({
       )}
 
       <p className="text-[11px] text-gray-500">
-        Estado de aprobacion interna: {approvalStatus ? approvalStatus.replace('_', ' ') : 'sin flujo'}
+        Estado de aprobación interna: {approvalStatus ? approvalStatus.replace('_', ' ') : 'sin flujo'}
       </p>
 
       {portalUrl && (
         <div className="space-y-2 rounded-lg border border-brand-stone bg-brand-paper p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Enlace unico para cliente</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Enlace único para cliente</p>
           <p className="break-all text-[11px] text-gray-500">{portalUrl}</p>
           <div className="flex flex-wrap gap-2">
             <a
@@ -350,7 +350,7 @@ export function ContractActions({
       <ConfirmationDialog
         open={showDeleteDialog}
         title="Eliminar contrato permanentemente"
-        description="Esta accion eliminara el contrato y sus archivos relacionados de forma definitiva."
+        description="Esta acción eliminará el contrato y sus archivos relacionados de forma definitiva."
         confirmLabel="Eliminar permanentemente"
         confirmVariant="danger"
         requireText="ELIMINAR"
@@ -366,9 +366,9 @@ export function ContractActions({
       />
       <WorkflowCommentDialog
         open={showReturnDialog}
-        title="Regresar contrato a revision"
-        description="Este paso reabre el workflow y requiere nueva revision antes de enviar a firma."
-        confirmLabel="Regresar a revision"
+        title="Regresar contrato a revisión"
+        description="Este paso reabre el workflow y requiere nueva revisión antes de enviar a firma."
+        confirmLabel="Regresar a revisión"
         loading={loadingAction === 'return_to_review'}
         onClose={() => setShowReturnDialog(false)}
         onConfirm={async (comment) => {

@@ -80,7 +80,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
     setPaymentToDelete(null)
   }
 
-  if (loading) return <div className="py-8 text-center text-sm text-gray-400">CargandoÃ¢â‚¬Â¦</div>
+  if (loading) return <div className="py-8 text-center text-sm text-gray-400">Cargandoâ€¦</div>
 
   const inputClass = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40"
 
@@ -111,7 +111,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-3 text-left">Tipo</th>
-              <th className="px-4 py-3 text-left">MÃƒÂ©todo</th>
+              <th className="px-4 py-3 text-left">MÃ©todo</th>
               <th className="px-4 py-3 text-right">Monto</th>
               <th className="px-4 py-3 text-left">Fecha</th>
               <th className="px-4 py-3 text-left">Referencia</th>
@@ -132,7 +132,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
                 <td className="px-4 py-3 text-gray-600">{PAYMENT_METHOD_LABELS[p.method]}</td>
                 <td className="px-4 py-3 text-right font-semibold text-emerald-600">{fmt(p.amount)}</td>
                 <td className="px-4 py-3 text-gray-500">{fmtDate(p.paid_at)}</td>
-                <td className="px-4 py-3 text-gray-400">{p.reference ?? 'Ã¢â‚¬â€'}</td>
+                <td className="px-4 py-3 text-gray-400">{p.reference ?? 'â€”'}</td>
                 <td className="px-2 py-3">
                   <button
                     onClick={() => setPaymentToDelete(p)}
@@ -175,7 +175,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">MÃƒÂ©todo *</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">MÃ©todo *</label>
                   <select value={form.method} onChange={e => setForm(p => ({ ...p, method: e.target.value as PaymentMethod }))} className={inputClass}>
                     {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map(k => (
                       <option key={k} value={k}>{PAYMENT_METHOD_LABELS[k]}</option>
@@ -195,7 +195,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">Referencia</label>
-                <input value={form.reference} onChange={e => setForm(p => ({ ...p, reference: e.target.value }))} placeholder="NÃƒÂºmero de transferencia..." className={inputClass} />
+                <input value={form.reference} onChange={e => setForm(p => ({ ...p, reference: e.target.value }))} placeholder="NÃºmero de transferencia..." className={inputClass} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">Notas</label>
@@ -204,7 +204,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
                 <button type="submit" disabled={saving} className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-white hover:bg-brand-gold-light disabled:opacity-60">
-                  {saving ? 'GuardandoÃ¢â‚¬Â¦' : 'Guardar'}
+                  {saving ? 'Guardandoâ€¦' : 'Guardar'}
                 </button>
               </div>
             </form>
@@ -215,7 +215,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
       <ConfirmationDialog
         open={Boolean(paymentToDelete)}
         title="Eliminar pago"
-        description="Esta accion eliminara el pago de forma permanente."
+        description="Esta acción eliminará el pago de forma permanente."
         confirmLabel="Eliminar"
         confirmVariant="danger"
         onClose={() => setPaymentToDelete(null)}

@@ -112,7 +112,7 @@ export function IncomePageClient({ initialPayments, projects }: Props) {
             <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-3 text-left">Proyecto</th>
               <th className="px-4 py-3 text-left">Tipo</th>
-              <th className="px-4 py-3 text-left">MÃƒÂ©todo</th>
+              <th className="px-4 py-3 text-left">MÃ©todo</th>
               <th className="px-4 py-3 text-right">Monto</th>
               <th className="px-4 py-3 text-left">Fecha</th>
               <th className="px-4 py-3 text-left">Referencia</th>
@@ -129,7 +129,7 @@ export function IncomePageClient({ initialPayments, projects }: Props) {
             )}
             {filtered.map(p => (
               <tr key={p.id} className="hover:bg-gray-50/50">
-                <td className="px-4 py-3 font-medium text-gray-800">{p.project?.title ?? 'Ã¢â‚¬â€'}</td>
+                <td className="px-4 py-3 font-medium text-gray-800">{p.project?.title ?? 'â€”'}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_BADGE[p.type]}`}>
                     {PAYMENT_TYPE_LABELS[p.type]}
@@ -138,7 +138,7 @@ export function IncomePageClient({ initialPayments, projects }: Props) {
                 <td className="px-4 py-3 text-gray-600">{PAYMENT_METHOD_LABELS[p.method]}</td>
                 <td className="px-4 py-3 text-right font-semibold text-emerald-600">{fmt(p.amount)}</td>
                 <td className="px-4 py-3 text-gray-500">{fmtDate(p.paid_at)}</td>
-                <td className="px-4 py-3 text-gray-400">{p.reference ?? 'Ã¢â‚¬â€'}</td>
+                <td className="px-4 py-3 text-gray-400">{p.reference ?? 'â€”'}</td>
                 <td className="px-2 py-3">
                   <button
                     onClick={() => setPaymentToDelete(p)}
@@ -190,7 +190,7 @@ export function IncomePageClient({ initialPayments, projects }: Props) {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">MÃƒÂ©todo *</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">MÃ©todo *</label>
                   <select
                     value={form.method}
                     onChange={e => setForm(p => ({ ...p, method: e.target.value as PaymentMethod }))}
@@ -232,7 +232,7 @@ export function IncomePageClient({ initialPayments, projects }: Props) {
                   type="text"
                   value={form.reference ?? ''}
                   onChange={e => setForm(p => ({ ...p, reference: e.target.value }))}
-                  placeholder="NÃƒÂºmero de transferencia, folio..."
+                  placeholder="NÃºmero de transferencia, folio..."
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40"
                 />
               </div>
@@ -258,7 +258,7 @@ export function IncomePageClient({ initialPayments, projects }: Props) {
                   disabled={saving}
                   className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-white hover:bg-brand-gold-light disabled:opacity-60"
                 >
-                  {saving ? 'GuardandoÃ¢â‚¬Â¦' : 'Guardar'}
+                  {saving ? 'Guardandoâ€¦' : 'Guardar'}
                 </button>
               </div>
             </form>
@@ -269,7 +269,7 @@ export function IncomePageClient({ initialPayments, projects }: Props) {
       <ConfirmationDialog
         open={Boolean(paymentToDelete)}
         title="Eliminar pago"
-        description="Esta accion eliminara el pago de forma permanente."
+        description="Esta acción eliminará el pago de forma permanente."
         confirmLabel="Eliminar"
         confirmVariant="danger"
         onClose={() => setPaymentToDelete(null)}

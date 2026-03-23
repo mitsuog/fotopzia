@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
   detectEventConflict,
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
   const includeCancelled = url.searchParams.get('includeCancelled') === '1'
 
   if (view && view !== 'day' && view !== 'week' && view !== 'month') {
-    return NextResponse.json({ error: 'ParÃ¡metro de vista invÃ¡lido. Usa day, week o month.' }, { status: 400 })
+    return NextResponse.json({ error: 'Parámetro de vista inválido. Usa day, week o month.' }, { status: 400 })
   }
 
   const rangeStart = start ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString()
@@ -183,7 +183,7 @@ export async function POST(request: Request) {
     ? String((rawPayload as { activity_type?: unknown }).activity_type)
     : ''
   const activityType = requestedActivityType === 'call' ? 'call' : 'meeting'
-  if (error || !payload) return NextResponse.json({ error: error ?? 'Payload invÃ¡lido.' }, { status: 400 })
+  if (error || !payload) return NextResponse.json({ error: error ?? 'Payload inválido.' }, { status: 400 })
 
   const supabase = await createClient()
   const collaboratorIds = Array.from(new Set([actor.userId, ...payload.attendee_user_ids]))
@@ -202,7 +202,7 @@ export async function POST(request: Request) {
 
     const missing = payload.attendee_user_ids.filter(id => !validUserIds.includes(id))
     if (missing.length > 0) {
-      return NextResponse.json({ error: 'Hay colaboradores invÃ¡lidos o inactivos en la cita.' }, { status: 400 })
+      return NextResponse.json({ error: 'Hay colaboradores inválidos o inactivos en la cita.' }, { status: 400 })
     }
   }
 

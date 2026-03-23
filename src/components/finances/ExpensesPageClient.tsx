@@ -85,7 +85,7 @@ export function ExpensesPageClient({ initialExpenses, categories, projects }: Pr
               onChange={e => setFilterCat(e.target.value)}
               className="h-9 appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40"
             >
-              <option value="">Todas las categorÃƒÂ­as</option>
+              <option value="">Todas las categorÃ­as</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -104,8 +104,8 @@ export function ExpensesPageClient({ initialExpenses, categories, projects }: Pr
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              <th className="px-4 py-3 text-left">CategorÃƒÂ­a</th>
-              <th className="px-4 py-3 text-left">DescripciÃƒÂ³n</th>
+              <th className="px-4 py-3 text-left">CategorÃ­a</th>
+              <th className="px-4 py-3 text-left">DescripciÃ³n</th>
               <th className="px-4 py-3 text-right">Monto</th>
               <th className="px-4 py-3 text-left">Fecha</th>
               <th className="px-4 py-3 text-left">Proyecto</th>
@@ -122,13 +122,13 @@ export function ExpensesPageClient({ initialExpenses, categories, projects }: Pr
               <tr key={e.id} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3">
                   <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                    {e.category?.name ?? 'Ã¢â‚¬â€'}
+                    {e.category?.name ?? 'â€”'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-700">{e.description}</td>
                 <td className="px-4 py-3 text-right font-semibold text-red-600">{fmt(e.amount)}</td>
                 <td className="px-4 py-3 text-gray-500">{fmtDate(e.date)}</td>
-                <td className="px-4 py-3 text-gray-400">{e.project?.title ?? 'Ã¢â‚¬â€'}</td>
+                <td className="px-4 py-3 text-gray-400">{e.project?.title ?? 'â€”'}</td>
                 <td className="px-2 py-3">
                   <button
                     onClick={() => setExpenseToDelete(e)}
@@ -154,7 +154,7 @@ export function ExpensesPageClient({ initialExpenses, categories, projects }: Pr
             </div>
             <form onSubmit={handleSave} className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">CategorÃƒÂ­a *</label>
+                <label className="mb-1 block text-xs font-medium text-gray-600">CategorÃ­a *</label>
                 <select
                   required
                   value={form.category_id}
@@ -166,7 +166,7 @@ export function ExpensesPageClient({ initialExpenses, categories, projects }: Pr
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">DescripciÃƒÂ³n *</label>
+                <label className="mb-1 block text-xs font-medium text-gray-600">DescripciÃ³n *</label>
                 <input
                   required
                   value={form.description}
@@ -217,7 +217,7 @@ export function ExpensesPageClient({ initialExpenses, categories, projects }: Pr
                   Cancelar
                 </button>
                 <button type="submit" disabled={saving} className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-white hover:bg-brand-gold-light disabled:opacity-60">
-                  {saving ? 'GuardandoÃ¢â‚¬Â¦' : 'Guardar'}
+                  {saving ? 'Guardandoâ€¦' : 'Guardar'}
                 </button>
               </div>
             </form>
@@ -228,7 +228,7 @@ export function ExpensesPageClient({ initialExpenses, categories, projects }: Pr
       <ConfirmationDialog
         open={Boolean(expenseToDelete)}
         title="Eliminar gasto"
-        description="Esta accion eliminara el gasto de forma permanente."
+        description="Esta acción eliminará el gasto de forma permanente."
         confirmLabel="Eliminar"
         confirmVariant="danger"
         onClose={() => setExpenseToDelete(null)}

@@ -209,7 +209,7 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
                               {eq.name}
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400">Ã¢â‚¬â€</span>
+                            <span className="text-xs text-gray-400">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -275,9 +275,9 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
         <>
           <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setDeleteConfirm(null)} />
           <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="font-semibold text-gray-800">Ã‚Â¿Eliminar recurso?</h3>
+            <h3 className="font-semibold text-gray-800">¿Eliminar recurso?</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Esta acciÃƒÂ³n no se puede deshacer. Si el recurso estÃƒÂ¡ asignado a eventos futuros, no se permitirÃƒÂ¡.
+              Esta acción no se puede deshacer. Si el recurso está asignado a eventos futuros, no se permitirá.
             </p>
             <div className="mt-4 flex gap-2">
               <button
@@ -376,12 +376,12 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
                       .filter(eq => !linkedEquipmentIds.has(eq.id) || eq.id === form.equipment_item_id)
                       .map(eq => (
                         <option key={eq.id} value={eq.id}>
-                          {eq.name} ({eq.asset_tag}) Ã¢â‚¬â€ {eq.status}
+                          {eq.name} ({eq.asset_tag}) — {eq.status}
                         </option>
                       ))}
                   </select>
                   <p className="mt-1 text-[11px] text-gray-400">
-                    Al asignar este recurso a un evento, el equipo se marcarÃƒÂ¡ como "en uso" automÃƒÂ¡ticamente.
+                    Al asignar este recurso a un evento, el equipo se marcará como "en uso" automáticamente.
                   </p>
                 </div>
               )}
