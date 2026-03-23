@@ -1,7 +1,10 @@
-export interface PaginatedContractPage {
+﻿export interface PaginatedContractPage {
   pageNumber: number
   lines: string[]
 }
+
+const TARGET_PAGE_WEIGHT = 28
+const MAX_ESTIMATED_PAGES = 24
 
 function lineWeight(line: string): number {
   const trimmed = line.trim()
@@ -12,6 +15,16 @@ function lineWeight(line: string): number {
   if (trimmed.length > 180) return 1.2
   if (trimmed.length > 120) return 1.05
   return 0.85
+}
+
+export function estimateContractPageCount(body: string): number {
+  const lines = body.split('\n')
+  const weights = lines.map(lineWeight)
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0)
+  if (!Number.isFinite(totalWeight) || totalWeight <= 0) return 1
+
+  const estimatedPages = Math.ceil(totalWeight / TARGET_PAGE_WEIGHT)
+  return Math.max(1, Math.min(MAX_ESTIMATED_PAGES, estimatedPages))
 }
 
 export function paginateContractBody(body: string, pageCountInput: number): PaginatedContractPage[] {
