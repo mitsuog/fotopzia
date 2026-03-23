@@ -42,6 +42,7 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
   const [error, setError] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const grouped = TYPE_ORDER.map(type => ({
     type,
@@ -53,6 +54,7 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
     setEditing(null)
     setForm(EMPTY_FORM)
     setError(null)
+    setDeleteError(null)
     setModalOpen(true)
   }
 
@@ -66,6 +68,7 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
       equipment_item_id: resource.equipment_item_id ?? '',
     })
     setError(null)
+    setDeleteError(null)
     setModalOpen(true)
   }
 
@@ -124,6 +127,7 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
   }
 
   async function handleDelete(id: string) {
+    setDeleteError(null)
     setDeleting(true)
     try {
       const res = await fetch(`/api/settings/resources/${id}`, { method: 'DELETE' })
@@ -134,7 +138,7 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
       setResources(prev => prev.filter(r => r.id !== id))
       setDeleteConfirm(null)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar')
+      setDeleteError(err instanceof Error ? err.message : 'Error al eliminar')
     } finally {
       setDeleting(false)
     }
@@ -160,6 +164,10 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
           Agregar Recurso
         </button>
       </div>
+
+      {deleteError && (
+        <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{deleteError}</p>
+      )}
 
       <div className="space-y-8">
         {grouped.map(({ type, label, items }) => (
@@ -201,7 +209,7 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
                               {eq.name}
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400">—</span>
+                            <span className="text-xs text-gray-400">Ã¢â‚¬â€</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -267,9 +275,9 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
         <>
           <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setDeleteConfirm(null)} />
           <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="font-semibold text-gray-800">¿Eliminar recurso?</h3>
+            <h3 className="font-semibold text-gray-800">Ã‚Â¿Eliminar recurso?</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Esta acción no se puede deshacer. Si el recurso está asignado a eventos futuros, no se permitirá.
+              Esta acciÃƒÂ³n no se puede deshacer. Si el recurso estÃƒÂ¡ asignado a eventos futuros, no se permitirÃƒÂ¡.
             </p>
             <div className="mt-4 flex gap-2">
               <button
@@ -368,12 +376,12 @@ export function ResourcesPageClient({ initialResources, equipmentItems }: Resour
                       .filter(eq => !linkedEquipmentIds.has(eq.id) || eq.id === form.equipment_item_id)
                       .map(eq => (
                         <option key={eq.id} value={eq.id}>
-                          {eq.name} ({eq.asset_tag}) — {eq.status}
+                          {eq.name} ({eq.asset_tag}) Ã¢â‚¬â€ {eq.status}
                         </option>
                       ))}
                   </select>
                   <p className="mt-1 text-[11px] text-gray-400">
-                    Al asignar este recurso a un evento, el equipo se marcará como "en uso" automáticamente.
+                    Al asignar este recurso a un evento, el equipo se marcarÃƒÂ¡ como "en uso" automÃƒÂ¡ticamente.
                   </p>
                 </div>
               )}

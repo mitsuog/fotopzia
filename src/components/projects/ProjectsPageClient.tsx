@@ -6,6 +6,7 @@ import { Plus, LayoutList, BarChart2, Filter } from 'lucide-react'
 import { PortfolioView } from './PortfolioView'
 import { ProjectProgressRing } from './ProjectProgressRing'
 import type { PortfolioProjectSummary } from '@/types/wbs'
+import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog'
 
 const STAGE_COLORS: Record<string, string> = {
   preproduccion: 'bg-gray-100 text-gray-600',
@@ -61,6 +62,7 @@ export function ProjectsPageClient({ projects, portfolioProjects, profiles = [] 
   const [showArchived, setShowArchived] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [projectToDelete, setProjectToDelete] = useState<ProjectRow | null>(null)
 
   const contactOptions = useMemo(() => {
     const seen = new Set<string>()
@@ -118,20 +120,13 @@ export function ProjectsPageClient({ projects, portfolioProjects, profiles = [] 
     }
   }
 
-  async function deleteProject(project: ProjectRow) {
+  async function confirmDeleteProject(confirmationText: string) {
+    if (!projectToDelete) return false
+
     setActionError(null)
-    const accepted = window.confirm(`Se eliminara permanentemente el proyecto \"${project.title}\". ¿Deseas continuar?`)
-    if (!accepted) return
-
-    const confirmationText = window.prompt('Escribe ELIMINAR para confirmar el borrado permanente.')
-    if (confirmationText !== 'ELIMINAR') {
-      setActionError('Confirmacion invalida. Debes escribir ELIMINAR exactamente.')
-      return
-    }
-
-    setBusyId(project.id)
+    setBusyId(projectToDelete.id)
     try {
-      const res = await fetch(`/api/projects/${project.id}`, {
+      const res = await fetch(`/api/projects/${projectToDelete.id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirmationText }),
@@ -139,9 +134,12 @@ export function ProjectsPageClient({ projects, portfolioProjects, profiles = [] 
       const json = await res.json().catch(() => ({ error: 'No fue posible eliminar el proyecto.' }))
       if (!res.ok) throw new Error(json.error ?? 'No fue posible eliminar el proyecto.')
 
-      setRows(prev => prev.filter(item => item.id !== project.id))
+      setRows(prev => prev.filter(item => item.id !== projectToDelete.id))
+      setProjectToDelete(null)
+      return true
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'No fue posible eliminar el proyecto.')
+      return false
     } finally {
       setBusyId(null)
     }
@@ -283,7 +281,7 @@ export function ProjectsPageClient({ projects, portfolioProjects, profiles = [] 
                     <button
                       type="button"
                       disabled={busyId === project.id}
-                      onClick={() => deleteProject(project)}
+                      onClick={() => setProjectToDelete(project)}
                       className="rounded-md border border-red-300 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
                     >
                       {busyId === project.id ? 'Eliminando...' : 'Eliminar'}
@@ -368,7 +366,7 @@ export function ProjectsPageClient({ projects, portfolioProjects, profiles = [] 
                             <button
                               type="button"
                               disabled={busyId === project.id}
-                              onClick={() => deleteProject(project)}
+                              onClick={() => setProjectToDelete(project)}
                               className="rounded-md border border-red-300 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
                             >
                               {busyId === project.id ? 'Eliminando...' : 'Eliminar'}
@@ -386,6 +384,24 @@ export function ProjectsPageClient({ projects, portfolioProjects, profiles = [] 
       ) : (
         <PortfolioView projects={portfolioProjects} loading={false} />
       )}
+      <ConfirmationDialog
+        open={Boolean(projectToDelete)}
+        title="Eliminar proyecto permanentemente"
+        description={projectToDelete
+          ? `Esta accion eliminara el proyecto ${projectToDelete.title} de forma definitiva.`
+          : 'Esta accion eliminara el proyecto de forma definitiva.'}
+        confirmLabel="Eliminar permanentemente"
+        confirmVariant="danger"
+        requireText="ELIMINAR"
+        requireTextLabel="Escribe ELIMINAR para confirmar"
+        loading={Boolean(projectToDelete && busyId === projectToDelete.id)}
+        onClose={() => {
+          if (!projectToDelete || busyId !== projectToDelete.id) setProjectToDelete(null)
+        }}
+        onConfirm={async (typedText) => {
+          await confirmDeleteProject(typedText)
+        }}
+      />
     </div>
   )
 }

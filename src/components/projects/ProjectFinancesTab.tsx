@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, X } from 'lucide-react'
 import type { ProjectPayment, PaymentType, PaymentMethod } from '@/types/finances'
 import { PAYMENT_TYPE_LABELS, PAYMENT_METHOD_LABELS } from '@/types/finances'
+import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog'
 
 function fmt(n: number) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -28,6 +29,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [paymentToDelete, setPaymentToDelete] = useState<ProjectPayment | null>(null)
   const [form, setForm] = useState({
     type: 'anticipo' as PaymentType,
     method: 'transferencia' as PaymentMethod,
@@ -71,13 +73,14 @@ export function ProjectFinancesTab({ projectId }: Props) {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar este pago?')) return
-    await fetch(`/api/finances/payments/${id}`, { method: 'DELETE' })
-    setPayments(prev => prev.filter(p => p.id !== id))
+  async function confirmDeletePayment() {
+    if (!paymentToDelete) return
+    await fetch(`/api/finances/payments/${paymentToDelete.id}`, { method: 'DELETE' })
+    setPayments(prev => prev.filter(p => p.id !== paymentToDelete.id))
+    setPaymentToDelete(null)
   }
 
-  if (loading) return <div className="py-8 text-center text-sm text-gray-400">Cargando…</div>
+  if (loading) return <div className="py-8 text-center text-sm text-gray-400">CargandoÃ¢â‚¬Â¦</div>
 
   const inputClass = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40"
 
@@ -108,7 +111,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-3 text-left">Tipo</th>
-              <th className="px-4 py-3 text-left">Método</th>
+              <th className="px-4 py-3 text-left">MÃƒÂ©todo</th>
               <th className="px-4 py-3 text-right">Monto</th>
               <th className="px-4 py-3 text-left">Fecha</th>
               <th className="px-4 py-3 text-left">Referencia</th>
@@ -129,10 +132,10 @@ export function ProjectFinancesTab({ projectId }: Props) {
                 <td className="px-4 py-3 text-gray-600">{PAYMENT_METHOD_LABELS[p.method]}</td>
                 <td className="px-4 py-3 text-right font-semibold text-emerald-600">{fmt(p.amount)}</td>
                 <td className="px-4 py-3 text-gray-500">{fmtDate(p.paid_at)}</td>
-                <td className="px-4 py-3 text-gray-400">{p.reference ?? '—'}</td>
+                <td className="px-4 py-3 text-gray-400">{p.reference ?? 'Ã¢â‚¬â€'}</td>
                 <td className="px-2 py-3">
                   <button
-                    onClick={() => handleDelete(p.id)}
+                    onClick={() => setPaymentToDelete(p)}
                     className="rounded p-1 text-gray-300 hover:bg-red-50 hover:text-red-500"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -172,7 +175,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Método *</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">MÃƒÂ©todo *</label>
                   <select value={form.method} onChange={e => setForm(p => ({ ...p, method: e.target.value as PaymentMethod }))} className={inputClass}>
                     {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map(k => (
                       <option key={k} value={k}>{PAYMENT_METHOD_LABELS[k]}</option>
@@ -192,7 +195,7 @@ export function ProjectFinancesTab({ projectId }: Props) {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">Referencia</label>
-                <input value={form.reference} onChange={e => setForm(p => ({ ...p, reference: e.target.value }))} placeholder="Número de transferencia..." className={inputClass} />
+                <input value={form.reference} onChange={e => setForm(p => ({ ...p, reference: e.target.value }))} placeholder="NÃƒÂºmero de transferencia..." className={inputClass} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">Notas</label>
@@ -201,13 +204,25 @@ export function ProjectFinancesTab({ projectId }: Props) {
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
                 <button type="submit" disabled={saving} className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-white hover:bg-brand-gold-light disabled:opacity-60">
-                  {saving ? 'Guardando…' : 'Guardar'}
+                  {saving ? 'GuardandoÃ¢â‚¬Â¦' : 'Guardar'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        open={Boolean(paymentToDelete)}
+        title="Eliminar pago"
+        description="Esta accion eliminara el pago de forma permanente."
+        confirmLabel="Eliminar"
+        confirmVariant="danger"
+        onClose={() => setPaymentToDelete(null)}
+        onConfirm={async () => {
+          await confirmDeletePayment()
+        }}
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { WorkflowCommentDialog } from '@/components/ui/WorkflowCommentDialog'
+import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog'
 
 interface LinkedProject {
   id: string
@@ -41,6 +42,7 @@ export function ContractActions({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [showReturnDialog, setShowReturnDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   async function runApprovalWorkflow(
     action: 'submit_approval' | 'approve' | 'reject' | 'return_to_review',
@@ -91,19 +93,9 @@ export function ContractActions({
     }
   }
 
-  async function deleteContract() {
+  async function deleteContract(confirmationText: string) {
     setError(null)
     setSuccess(null)
-
-    const accepted = window.confirm('Esta accion eliminara el contrato de forma permanente. ¿Deseas continuar?')
-    if (!accepted) return
-
-    const confirmationText = window.prompt('Escribe ELIMINAR para confirmar el borrado permanente.')
-    if (confirmationText !== 'ELIMINAR') {
-      setError('Confirmacion invalida. Debes escribir ELIMINAR exactamente.')
-      return
-    }
-
     setLoadingAction('delete')
     try {
       const response = await fetch(`/api/contracts/${contractId}`, {
@@ -115,8 +107,10 @@ export function ContractActions({
       if (!response.ok) throw new Error(payload.error ?? 'No fue posible eliminar el contrato.')
       router.push('/contracts')
       router.refresh()
+      return true
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No fue posible eliminar el contrato.')
+      return false
     } finally {
       setLoadingAction(null)
     }
@@ -154,7 +148,7 @@ export function ContractActions({
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact_id: contactId, title: projectTitle ?? 'Proyecto sin título' }),
+        body: JSON.stringify({ contact_id: contactId, title: projectTitle ?? 'Proyecto sin titulo' }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'No fue posible crear el proyecto.')
@@ -189,7 +183,7 @@ export function ContractActions({
               href={`/projects/${linkedProject.id}`}
               className="flex w-full items-center justify-center rounded-lg bg-brand-navy px-3 py-2 text-xs font-semibold text-white hover:bg-brand-navy-light"
             >
-              Ver Proyecto ?
+              Ver proyecto
             </Link>
           </div>
         ) : (
@@ -314,7 +308,7 @@ export function ContractActions({
 
           <button
             type="button"
-            onClick={deleteContract}
+            onClick={() => setShowDeleteDialog(true)}
             disabled={Boolean(loadingAction)}
             className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
           >
@@ -353,7 +347,23 @@ export function ContractActions({
 
       {error && <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
       {success && <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{success}</p>}
-
+      <ConfirmationDialog
+        open={showDeleteDialog}
+        title="Eliminar contrato permanentemente"
+        description="Esta accion eliminara el contrato y sus archivos relacionados de forma definitiva."
+        confirmLabel="Eliminar permanentemente"
+        confirmVariant="danger"
+        requireText="ELIMINAR"
+        requireTextLabel="Escribe ELIMINAR para confirmar"
+        loading={loadingAction === 'delete'}
+        onClose={() => {
+          if (loadingAction !== 'delete') setShowDeleteDialog(false)
+        }}
+        onConfirm={async (typedText) => {
+          const deleted = await deleteContract(typedText)
+          if (deleted) setShowDeleteDialog(false)
+        }}
+      />
       <WorkflowCommentDialog
         open={showReturnDialog}
         title="Regresar contrato a revision"
