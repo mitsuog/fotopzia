@@ -15,7 +15,7 @@ export async function GET(
 
   const { data: contract, error } = await supabase
     .from('contracts')
-    .select('id, contract_number, title, content, signed_by, signed_at, initials_data, page_count, annexes, contact:contacts(first_name, last_name, email), quote:quotes(quote_number)')
+    .select('id, contract_number, title, content, signed_by, signed_at, signed_signature_data, initials_data, page_count, annexes, contact:contacts(first_name, last_name, email), quote:quotes(quote_number)')
     .eq('id', id)
     .single()
 
@@ -37,6 +37,7 @@ export async function GET(
     quote_number: contract.quote?.quote_number ?? null,
     signed_by: contract.signed_by,
     signed_at: contract.signed_at,
+    signed_signature_data: contract.signed_signature_data ?? null,
     initials_data: initials,
     page_count: contract.page_count ?? 1,
     annexes: parsedContent.annexes,

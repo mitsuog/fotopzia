@@ -24,7 +24,7 @@ export async function POST(
     return NextResponse.json({ error: 'El nombre del firmante es obligatorio.' }, { status: 400 })
   }
   if (!signatureData.startsWith('data:image/')) {
-    return NextResponse.json({ error: 'La firma autografa del anexo es obligatoria.' }, { status: 400 })
+    return NextResponse.json({ error: 'La firma autógrafa del anexo sobre el documento es obligatoria.' }, { status: 400 })
   }
 
   const { data: contract, error: contractError } = await supabaseAdmin
@@ -38,7 +38,7 @@ export async function POST(
   }
 
   if (contract.status !== 'sent' && contract.status !== 'viewed') {
-    return NextResponse.json({ error: 'Este contrato no esta disponible para firma.' }, { status: 400 })
+    return NextResponse.json({ error: 'Este contrato no está disponible para firma.' }, { status: 400 })
   }
 
   const annexes = toContractAnnexes(contract.annexes)
@@ -102,7 +102,7 @@ export async function POST(
     contact_id: contract.contact_id,
     deal_id: null,
     subject: 'Anexo firmado por cliente',
-    body: `${signerName} firmo el anexo "${target.title}" del contrato ${contract.contract_number}.`,
+    body: `${signerName} firmó el anexo "${target.title}" del contrato ${contract.contract_number}.`,
     created_by: contract.created_by,
   })
 

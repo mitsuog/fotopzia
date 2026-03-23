@@ -2,12 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+type SignaturePadVariant = 'default' | 'initial' | 'document-signature'
+
 interface SignaturePadProps {
   label: string
   value?: string | null
   onChange: (value: string | null) => void
   width?: number
   height?: number
+  variant?: SignaturePadVariant
+  hintText?: string
+  className?: string
 }
 
 export function SignaturePad({
@@ -15,11 +20,17 @@ export function SignaturePad({
   value,
   onChange,
   width = 520,
-  height = 180,
+  height,
+  variant = 'default',
+  hintText,
+  className,
 }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const drawingRef = useRef(false)
   const [hasStroke, setHasStroke] = useState(Boolean(value))
+
+  const resolvedHeight = height ?? (variant === 'initial' ? 82 : variant === 'document-signature' ? 140 : 180)
+  const lineWidth = variant === 'initial' ? 1.6 : 2.1
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -69,10 +80,10 @@ export function SignaturePad({
     const context = canvas.getContext('2d')
     if (!context) return
     const { x, y } = getPoint(event)
-    context.lineWidth = 2
+    context.lineWidth = lineWidth
     context.lineCap = 'round'
     context.lineJoin = 'round'
-    context.strokeStyle = '#1C2B4A'
+    context.strokeStyle = '#102544'
     context.lineTo(x, y)
     context.stroke()
     setHasStroke(true)
@@ -97,23 +108,29 @@ export function SignaturePad({
     onChange(null)
   }
 
+  const defaultHint =
+    variant === 'initial'
+      ? 'Antefirma aqui.'
+      : 'Firma aqui directamente sobre el documento.'
+
   return (
-    <div className="space-y-2">
+    <div className={['space-y-2', className ?? ''].join(' ').trim()}>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-brand-navy">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
         <button
           type="button"
           onClick={clear}
-          className="rounded-md border border-brand-stone px-2 py-1 text-xs text-gray-600 hover:bg-brand-paper"
+          className="rounded-md border border-brand-stone px-2 py-1 text-[11px] text-gray-600 hover:bg-brand-paper"
         >
           Limpiar
         </button>
       </div>
+
       <div className="overflow-hidden rounded-lg border border-brand-stone bg-white">
         <canvas
           ref={canvasRef}
           width={width}
-          height={height}
+          height={resolvedHeight}
           className="h-auto w-full touch-none"
           onPointerDown={startDraw}
           onPointerMove={draw}
@@ -122,7 +139,10 @@ export function SignaturePad({
           onPointerLeave={endDraw}
         />
       </div>
-      {!hasStroke && <p className="text-xs text-gray-500">Firma en el recuadro para continuar.</p>}
+
+      {!hasStroke && (
+        <p className="text-[11px] text-gray-500">{hintText ?? defaultHint}</p>
+      )}
     </div>
   )
 }

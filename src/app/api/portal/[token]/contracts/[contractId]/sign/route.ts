@@ -35,7 +35,7 @@ export async function POST(
     return NextResponse.json({ error: 'El nombre del firmante es obligatorio.' }, { status: 400 })
   }
   if (!signatureData.startsWith('data:image/')) {
-    return NextResponse.json({ error: 'La firma autografa es obligatoria.' }, { status: 400 })
+    return NextResponse.json({ error: 'La firma autógrafa es obligatoria.' }, { status: 400 })
   }
 
   const { data: contract, error: contractError } = await supabaseAdmin
@@ -49,7 +49,7 @@ export async function POST(
   }
 
   if (contract.status !== 'sent' && contract.status !== 'viewed') {
-    return NextResponse.json({ error: 'Este contrato no esta disponible para firma.' }, { status: 400 })
+    return NextResponse.json({ error: 'Este contrato no está disponible para firma.' }, { status: 400 })
   }
 
   const parsedContent = parseContractContent(contract.content, toContractAnnexes(contract.annexes))
@@ -61,7 +61,7 @@ export async function POST(
 
   const pageCount = Number(contract.page_count ?? 1)
   if (pageCount > 1 && (initialsData.length < pageCount || initialsData.some(item => !item.startsWith('data:image/')))) {
-    return NextResponse.json({ error: 'Debes registrar antefirma en cada pagina del contrato.' }, { status: 400 })
+    return NextResponse.json({ error: 'Debes registrar antefirma en cada página del contrato.' }, { status: 400 })
   }
 
   const nowIso = new Date().toISOString()
@@ -95,6 +95,7 @@ export async function POST(
     quote_number: contract.quote?.quote_number ?? null,
     signed_by: signerName,
     signed_at: nowIso,
+    signed_signature_data: signatureData,
     initials_data: initialsData.slice(0, pageCount),
     page_count: pageCount,
     annexes,
@@ -122,7 +123,7 @@ export async function POST(
     contact_id: contract.contact_id,
     deal_id: contract.quote_id,
     subject: 'Contrato firmado por cliente',
-    body: `${signerName} firmo el contrato ${contract.contract_number}.`,
+    body: `${signerName} firmó el contrato ${contract.contract_number}.`,
     created_by: contract.created_by,
   })
 

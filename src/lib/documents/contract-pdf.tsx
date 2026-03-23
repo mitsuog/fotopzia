@@ -3,6 +3,7 @@
 import type { ContractAnnex } from '@/types/quotes'
 import { ensurePdfFontsRegistered } from './pdf-fonts'
 import { buildDocumentHeader } from './pdf-header'
+import { paginateContractBody } from './contract-pagination'
 
 export type ContractPdfData = {
   id: string
@@ -14,6 +15,7 @@ export type ContractPdfData = {
   quote_number: string | null
   signed_by: string | null
   signed_at: string | null
+  signed_signature_data?: string | null
   initials_data: string[]
   page_count: number
   annexes: ContractAnnex[]
@@ -43,83 +45,81 @@ function isSectionTitle(line: string): boolean {
 
 export async function renderContractPdfBuffer(contract: ContractPdfData): Promise<Uint8Array> {
   await ensurePdfFontsRegistered()
-  const { renderToBuffer, Document, Page, Text, View, StyleSheet } = await import('@react-pdf/renderer')
+  const { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer')
 
   const styles = StyleSheet.create({
     page: { padding: 40, fontFamily: 'Roboto', fontSize: 10, color: '#1C2B4A', lineHeight: 1.55 },
     meta: { marginTop: 5, fontSize: 9, color: '#4b5563' },
     body: { marginTop: 14 },
     paragraph: { marginBottom: 7, textAlign: 'justify', fontSize: 10 },
-    clauseNumber: { marginBottom: 7, textAlign: 'justify', fontSize: 10 },
     sectionTitle: { marginTop: 14, marginBottom: 6, fontWeight: 'bold', fontSize: 11, color: '#1C2B4A' },
-    signatureBox: { marginTop: 22, borderTopWidth: 1, borderTopColor: '#c0c0c0', paddingTop: 10 },
+    initialBlock: { marginTop: 16, borderTopWidth: 0.8, borderTopColor: '#d1d5db', paddingTop: 8 },
+    initialLabel: { fontSize: 8.5, color: '#6b7280', marginBottom: 5 },
+    initialImage: { width: 110, height: 34, objectFit: 'contain' },
+    pendingInitial: { fontSize: 8.5, color: '#6b7280' },
+    signatureBox: { marginTop: 24, borderTopWidth: 1, borderTopColor: '#c0c0c0', paddingTop: 10 },
     signatureName: { fontSize: 10, fontWeight: 'bold' },
-    annexBox: { marginTop: 16, borderWidth: 1, borderColor: '#D8D3C8', borderRadius: 4, padding: 8 },
-    annexTitle: { fontSize: 9.5, fontWeight: 'bold', marginBottom: 4 },
-    annexItem: { fontSize: 9, marginBottom: 2, color: '#334155' },
-    footerInitial: {
-      position: 'absolute',
-      bottom: 12,
-      left: 40,
-      right: 40,
-      fontSize: 8,
-      color: '#6b7280',
-      borderTopWidth: 0.5,
-      borderTopColor: '#d1d5db',
-      paddingTop: 4,
-    },
+    signatureImage: { marginTop: 6, width: 180, height: 62, objectFit: 'contain' },
   })
 
-  const lines = contract.body.split('\n')
-  const renderedParagraphs = lines.map((line, index) => {
-    const trimmed = line.trim()
-    if (!trimmed) return <Text key={`sp-${index}`} style={styles.paragraph}>{' '}</Text>
-    if (isSectionTitle(trimmed)) {
-      return <Text key={`st-${index}`} style={styles.sectionTitle}>{trimmed}</Text>
-    }
-    return <Text key={`p-${index}`} style={styles.paragraph}>{trimmed}</Text>
-  })
-
-  const initialStamp = contract.initials_data.length
-    ? contract.initials_data.join(' | ')
-    : 'Pendiente de antefirmas'
+  const totalPages = Math.max(1, Number(contract.page_count ?? 1))
+  const pages = paginateContractBody(contract.body, totalPages)
 
   const pdf = await renderToBuffer(
     <Document>
-      <Page size="A4" style={styles.page} wrap>
-        {buildDocumentHeader({ View, Text, StyleSheet }, {
-          docType: 'CONTRATO',
-          docNumber: `Contrato: ${contract.contract_number}`,
-          clientName: contract.contact_name,
-        })}
-        {contract.contact_email && <Text style={styles.meta}>Email: {contract.contact_email}</Text>}
-        {contract.quote_number && <Text style={styles.meta}>Cotizacion relacionada: {contract.quote_number}</Text>}
+      {pages.map((page, pageIndex) => {
+        const isLastPage = pageIndex === pages.length - 1
+        const initialData = contract.initials_data[pageIndex] ?? null
+        const renderedParagraphs = page.lines.map((line, index) => {
+          const trimmed = line.trim()
+          if (!trimmed) return <Text key={`sp-${page.pageNumber}-${index}`} style={styles.paragraph}>{' '}</Text>
+          if (isSectionTitle(trimmed)) {
+            return <Text key={`st-${page.pageNumber}-${index}`} style={styles.sectionTitle}>{trimmed}</Text>
+          }
+          return <Text key={`p-${page.pageNumber}-${index}`} style={styles.paragraph}>{trimmed}</Text>
+        })
 
-        <View style={styles.body}>{renderedParagraphs}</View>
+        return (
+          <Page key={`page-${page.pageNumber}`} size="A4" style={styles.page} wrap={false}>
+            {buildDocumentHeader({ View, Text, StyleSheet }, {
+              docType: 'CONTRATO',
+              docNumber: `Contrato: ${contract.contract_number} - Pagina ${page.pageNumber}/${pages.length}`,
+              clientName: contract.contact_name,
+            })}
+            {pageIndex === 0 && contract.contact_email && <Text style={styles.meta}>Email: {contract.contact_email}</Text>}
+            {pageIndex === 0 && contract.quote_number && <Text style={styles.meta}>Cotizacion relacionada: {contract.quote_number}</Text>}
 
-        <View style={styles.annexBox}>
-          <Text style={styles.annexTitle}>Anexos del contrato</Text>
-          {contract.annexes.length === 0 && <Text style={styles.annexItem}>Sin anexos</Text>}
-          {contract.annexes.map((annex, index) => (
-            <Text key={annex.id} style={styles.annexItem}>
-              {index + 1}. {annex.title} — {annex.signed_at ? 'Firmado' : 'Pendiente de firma'}
-            </Text>
-          ))}
-        </View>
+            <View style={styles.body}>{renderedParagraphs}</View>
 
-        <View style={styles.signatureBox}>
-          <Text style={styles.signatureName}>
-            {contract.signed_by ? `Firmado por: ${contract.signed_by}` : 'Firma pendiente del cliente'}
-          </Text>
-          <Text style={styles.meta}>
-            {contract.signed_at ? `Fecha de firma: ${new Date(contract.signed_at).toLocaleString('es-MX')}` : 'Sin fecha de firma'}
-          </Text>
-        </View>
+            {pages.length > 1 && (
+              <View style={styles.initialBlock}>
+                <Text style={styles.initialLabel}>
+                  Antefirma cliente - Pagina {page.pageNumber} de {pages.length}
+                </Text>
+                {initialData?.startsWith('data:image/') ? (
+                  <Image src={initialData} style={styles.initialImage} />
+                ) : (
+                  <Text style={styles.pendingInitial}>Antefirma pendiente en esta pagina.</Text>
+                )}
+              </View>
+            )}
 
-        <Text style={styles.footerInitial} fixed>
-          Antefirma cliente (requisito por pagina): {initialStamp} — Paginas requeridas: {contract.page_count}
-        </Text>
-      </Page>
+            {isLastPage && (
+              <View style={styles.signatureBox}>
+                <Text style={styles.signatureName}>
+                  {contract.signed_by ? `Firmado por: ${contract.signed_by}` : 'Firma pendiente del cliente'}
+                </Text>
+                <Text style={styles.meta}>
+                  {contract.signed_at ? `Fecha de firma: ${new Date(contract.signed_at).toLocaleString('es-MX')}` : 'Sin fecha de firma'}
+                </Text>
+                {contract.signed_signature_data?.startsWith('data:image/') && (
+                  <Image src={contract.signed_signature_data} style={styles.signatureImage} />
+                )}
+              </View>
+            )}
+          </Page>
+        )
+      })}
     </Document>,
   )
 
@@ -193,7 +193,7 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
         {tableRows.map((row, i) => (
           <View key={`row-${i}`} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
             <Text style={[styles.tableCellBold, styles.colLabel]}>{row.label}</Text>
-            <Text style={[styles.tableCell, styles.colValue]}>{row.value || '—'}</Text>
+            <Text style={[styles.tableCell, styles.colValue]}>{row.value || '-'}</Text>
           </View>
         ))}
       </View>
@@ -230,15 +230,15 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
         {dataRows.length === 0 && (
           <View style={styles.tableRow}>
             <Text style={[styles.tableCell, styles.colHito]}>Sin hitos registrados</Text>
-            <Text style={[styles.tableCell, styles.colFecha]}>—</Text>
-            <Text style={[styles.tableCell, styles.colObs]}>—</Text>
+            <Text style={[styles.tableCell, styles.colFecha]}>-</Text>
+            <Text style={[styles.tableCell, styles.colObs]}>-</Text>
           </View>
         )}
         {dataRows.map((row, i) => (
           <View key={`row-${i}`} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
-            <Text style={[styles.tableCell, styles.colHito]}>{row[0] || '—'}</Text>
-            <Text style={[styles.tableCell, styles.colFecha]}>{row[1] || '—'}</Text>
-            <Text style={[styles.tableCell, styles.colObs]}>{row[2] || '—'}</Text>
+            <Text style={[styles.tableCell, styles.colHito]}>{row[0] || '-'}</Text>
+            <Text style={[styles.tableCell, styles.colFecha]}>{row[1] || '-'}</Text>
+            <Text style={[styles.tableCell, styles.colObs]}>{row[2] || '-'}</Text>
           </View>
         ))}
         {noteLines.length > 0 && (
@@ -280,7 +280,7 @@ export async function renderContractAnnexPdfBuffer(annex: ContractAnnexPdfData):
             {keyValueLines.map((row, i) => (
               <View key={`kv-${i}`} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
                 <Text style={[styles.tableCellBold, styles.colLabel]}>{row.label}</Text>
-                <Text style={[styles.tableCell, styles.colValue]}>{row.value || '—'}</Text>
+                <Text style={[styles.tableCell, styles.colValue]}>{row.value || '-'}</Text>
               </View>
             ))}
           </View>
