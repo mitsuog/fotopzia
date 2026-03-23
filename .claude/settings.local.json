@@ -59,7 +59,13 @@
       "Bash(grep:*)",
       "Bash(npm run:*)",
       "Bash(ls:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(while read:*)",
+      "Bash(do sed:*)",
+      "Bash(done)",
+      "Bash(npx next:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
