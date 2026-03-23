@@ -16,7 +16,7 @@ export default async function ExpensesPage() {
   const [expensesRes, categoriesRes, projectsRes] = await Promise.all([
     db.from('expenses').select('*, category:expense_categories(*), project:projects(id,title)').order('date', { ascending: false }),
     db.from('expense_categories').select('*').order('sort_order'),
-    supabase.from('projects').select('id, title').order('title'),
+    supabase.from('projects').select('id, title').neq('is_archived', true).order('title'),
   ])
 
   return (
@@ -33,3 +33,4 @@ export default async function ExpensesPage() {
     </div>
   )
 }
+

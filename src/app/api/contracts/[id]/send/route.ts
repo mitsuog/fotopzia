@@ -79,6 +79,10 @@ export async function POST(
     return NextResponse.json({ error: 'El contrato ya esta firmado.' }, { status: 400 })
   }
 
+  if (contract.status === 'voided') {
+    return NextResponse.json({ error: 'El contrato esta archivado y no puede enviarse.' }, { status: 400 })
+  }
+
   const { data: approvalFlow } = await supabase
     .from('approval_flows')
     .select('id, status')
@@ -151,3 +155,4 @@ export async function POST(
     },
   })
 }
+

@@ -1,4 +1,4 @@
-﻿import { notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { getPortalAccessByToken, touchPortalAccess } from '@/lib/portal/token'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { PortalShell } from '@/components/portal/PortalShell'
@@ -48,7 +48,8 @@ export default async function PortalEventPage({ params }: PortalEventPageProps) 
     supabaseAdmin
       .from('contracts')
       .select('id, status')
-      .eq('contact_id', access.contact_id),
+      .eq('contact_id', access.contact_id)
+      .neq('status', 'voided'),
   ])
 
   const now = Date.now()
@@ -112,7 +113,7 @@ export default async function PortalEventPage({ params }: PortalEventPageProps) 
                 <article key={event.id} className="rounded-lg border border-brand-stone/80 bg-brand-paper/30 p-3">
                   <p className="text-sm font-semibold text-brand-navy">{event.title}</p>
                   <p className="text-xs text-gray-600">
-                    {EVENT_TYPE_LABEL[event.type] ?? event.type} · {EVENT_STATUS_LABEL[event.status] ?? event.status}
+                    {EVENT_TYPE_LABEL[event.type] ?? event.type} - {EVENT_STATUS_LABEL[event.status] ?? event.status}
                   </p>
                   <p className="text-xs text-gray-600">
                     {formatDateTime(event.start_at)} - {formatDateTime(event.end_at)}
@@ -131,4 +132,5 @@ export default async function PortalEventPage({ params }: PortalEventPageProps) 
     </PortalShell>
   )
 }
+
 

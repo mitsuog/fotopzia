@@ -204,6 +204,10 @@ export async function POST(
     return NextResponse.json({ error: 'Contrato no encontrado.' }, { status: 404 })
   }
 
+  if (contract.status === 'voided') {
+    return NextResponse.json({ error: 'El contrato esta archivado. Desarchivalo para continuar.' }, { status: 400 })
+  }
+
   const actorName = profile.full_name || 'Usuario'
 
   if (action === 'submit_approval') {
@@ -362,3 +366,4 @@ export async function POST(
 
   return NextResponse.json({ error: 'Accion no soportada.' }, { status: 400 })
 }
+

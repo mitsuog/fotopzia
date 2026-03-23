@@ -45,6 +45,7 @@ export default async function PortalDocumentsPage({ params }: DocumentsPageProps
       .from('contracts')
       .select('id, contract_number, title, status, signed_at, signed_by, annexes, content')
       .eq('contact_id', access.contact_id)
+      .neq('status', 'voided')
       .order('created_at', { ascending: false }),
   ])
 
@@ -234,3 +235,4 @@ export default async function PortalDocumentsPage({ params }: DocumentsPageProps
     </PortalShell>
   )
 }
+

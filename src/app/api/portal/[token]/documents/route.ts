@@ -26,6 +26,7 @@ export async function GET(
       .from('contracts')
       .select('id, contract_number, title, status, sent_at, viewed_at, signed_at, signed_by, page_count, annexes, content, updated_at')
       .eq('contact_id', access.contact_id)
+      .neq('status', 'voided')
       .order('created_at', { ascending: false }),
   ])
 
@@ -61,3 +62,4 @@ export async function GET(
     },
   })
 }
+

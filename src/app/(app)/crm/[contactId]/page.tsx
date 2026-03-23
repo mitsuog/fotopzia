@@ -73,6 +73,7 @@ export default async function ContactDetailPage({
       .from('projects')
       .select('id, title, stage, due_date, deal_id, created_at')
       .eq('contact_id', contactId)
+      .neq('is_archived', true)
       .order('created_at', { ascending: false }),
   ])
 
@@ -188,3 +189,4 @@ export default async function ContactDetailPage({
     />
   )
 }
+

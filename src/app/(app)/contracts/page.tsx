@@ -5,17 +5,38 @@ import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ContractsPage() {
+type SearchParams = {
+  showArchived?: string
+}
+
+export default async function ContractsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams
+  const showArchived = params.showArchived === '1' || params.showArchived === 'true'
   const supabase = await createClient()
 
-  const { data: contracts } = await supabase
+  let contractsQuery = supabase
     .from('contracts')
     .select('id, contract_number, title, status, created_at, contact:contacts(first_name, last_name)')
     .order('created_at', { ascending: false })
 
+  if (!showArchived) {
+    contractsQuery = contractsQuery.neq('status', 'voided')
+  }
+
+  const { data: contracts } = await contractsQuery
+
   return (
     <div>
       <PageHeader title="Contratos" subtitle={`${contracts?.length ?? 0} contratos registrados`} badge="Legal" />
+
+      <div className="mb-3 flex items-center gap-2">
+        <Link
+          href={showArchived ? '/contracts' : '/contracts?showArchived=1'}
+          className="rounded-md border border-brand-stone bg-white px-3 py-1 text-xs font-medium text-brand-navy hover:bg-brand-paper"
+        >
+          {showArchived ? 'Ocultar archivados' : 'Mostrar archivados'}
+        </Link>
+      </div>
 
       <div className="rounded-xl border border-brand-stone/80 bg-white/80 overflow-hidden shadow-[0_12px_26px_-20px_rgba(28,43,74,0.45)] backdrop-blur">
         <div className="overflow-x-auto">

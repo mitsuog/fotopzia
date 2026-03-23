@@ -1,12 +1,21 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  const { searchParams } = new URL(request.url)
+  const includeArchived = searchParams.get('include_archived') === 'true'
+
+  let query = supabase
     .from('projects')
-    .select('id, title, stage, contact_id, deal_id, due_date, created_at')
+    .select('id, title, stage, contact_id, deal_id, due_date, created_at, is_archived, archived_at')
     .order('created_at', { ascending: false })
+
+  if (!includeArchived) {
+    query = query.neq('is_archived', true)
+  }
+
+  const { data, error } = await query
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ data: data ?? [] })

@@ -40,6 +40,8 @@ export type ProjectWithAll = {
   description: string | null
   assigned_to: string | null
   created_at: string
+  is_archived: boolean
+  archived_at: string | null
   contact: { first_name: string; last_name: string; email: string } | null
 }
 
@@ -215,3 +217,4 @@ export function useProjectDeliverables(projectId: string, initial: ProjectDelive
 
   return { deliverables, setDeliverables, updateDeliverable, createDeliverable, loading }
 }
+

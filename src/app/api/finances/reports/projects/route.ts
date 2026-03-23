@@ -15,6 +15,7 @@ export async function GET() {
   const { data: projects, error: projError } = await supabase
     .from('projects')
     .select('id, title')
+    .neq('is_archived', true)
     .order('created_at', { ascending: false })
 
   if (projError) return NextResponse.json({ error: projError.message }, { status: 500 })
@@ -61,3 +62,4 @@ export async function GET() {
 
   return NextResponse.json(result)
 }
+

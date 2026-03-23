@@ -7,7 +7,7 @@ const STATUS_CONFIG: Record<ContractStatus, { label: string; className: string }
   viewed:   { label: 'Visto',    className: 'bg-purple-100 text-purple-700' },
   signed:   { label: 'Firmado',  className: 'bg-emerald-100 text-emerald-700' },
   rejected: { label: 'Rechazado', className: 'bg-red-100 text-red-600' },
-  voided:   { label: 'Anulado',  className: 'bg-gray-200 text-gray-500' },
+  voided:   { label: 'Archivado', className: 'bg-gray-200 text-gray-500' },
 }
 
 export function ContractStatusBadge({ status }: { status: ContractStatus }) {
@@ -23,3 +23,4 @@ export function ContractStatusBadge({ status }: { status: ContractStatus }) {
     </span>
   )
 }
+

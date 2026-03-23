@@ -48,6 +48,10 @@ export async function POST(
     return NextResponse.json({ error: 'Contrato no disponible para este portal.' }, { status: 404 })
   }
 
+  if (contract.status !== 'sent' && contract.status !== 'viewed') {
+    return NextResponse.json({ error: 'Este contrato no esta disponible para firma.' }, { status: 400 })
+  }
+
   const parsedContent = parseContractContent(contract.content, toContractAnnexes(contract.annexes))
   const annexes = parsedContent.annexes
   const pendingAnnexes = annexes.filter(annex => annex.requires_signature && !annex.signed_at)
@@ -136,3 +140,4 @@ export async function POST(
     },
   })
 }
+

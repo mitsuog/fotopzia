@@ -18,11 +18,10 @@ export default async function ProjectsPage() {
   ] = await Promise.all([
     supabase
       .from('projects')
-      .select('id, title, stage, project_type, start_date, due_date, color, assigned_to, contact:contacts(first_name, last_name, company_name)')
+      .select('id, title, stage, project_type, start_date, due_date, color, assigned_to, is_archived, archived_at, contact:contacts(first_name, last_name, company_name)')
       .order('created_at', { ascending: false }),
     supabase.from('project_tasks').select('project_id, status'),
     supabase.from('project_deliverables').select('project_id, status'),
-    // Graceful — table may not exist yet if migration hasn't run
     supabase.from('project_wbs_nodes').select('project_id, status, level').eq('level', 'task'),
     supabase.from('project_wbs_nodes').select('project_id, level').eq('level', 'macro'),
     supabase.from('profiles').select('id, full_name, email').order('full_name'),
@@ -37,12 +36,13 @@ export default async function ProjectsPage() {
     due_date: string | null
     color: string | null
     assigned_to: string | null
+    is_archived: boolean | null
+    archived_at: string | null
     contact: { first_name: string; last_name: string; company_name: string | null } | null
   }
 
   const rawProjects = ((projects ?? []) as unknown as RawProject[])
 
-  // Build task stats from both project_tasks and wbs task nodes
   const taskMap = new Map<string, { total: number; done: number }>()
   for (const task of tasks ?? []) {
     const t = task as { project_id: string; status: string }
@@ -86,6 +86,8 @@ export default async function ProjectsPage() {
       due_date: p.due_date,
       color: p.color,
       assigned_to: p.assigned_to,
+      is_archived: Boolean(p.is_archived),
+      archived_at: p.archived_at,
       contact: p.contact
         ? { first_name: p.contact.first_name, last_name: p.contact.last_name }
         : null,
@@ -95,9 +97,8 @@ export default async function ProjectsPage() {
     }
   })
 
-  // Build PortfolioProjectSummary[] for portfolio view (server-side, no API call needed)
   const portfolioProjects: PortfolioProjectSummary[] = rawProjects
-    .filter(p => p.stage !== 'cierre')
+    .filter(p => p.stage !== 'cierre' && !p.is_archived)
     .map(p => {
       const ts = taskMap.get(p.id) ?? { total: 0, done: 0 }
       const progress = ts.total > 0 ? Math.round((ts.done / ts.total) * 100) : 0
@@ -124,7 +125,7 @@ export default async function ProjectsPage() {
       }
     })
 
-  const activeCount = projectRows.filter(p => p.stage !== 'cierre').length
+  const activeCount = projectRows.filter(p => p.stage !== 'cierre' && !p.is_archived).length
 
   return (
     <div className="space-y-5">

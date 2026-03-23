@@ -49,12 +49,13 @@ export default async function ClientPortalPage({ params }: PageProps) {
     pendingQuotesResult,
   ] = await Promise.all([
     supabaseAdmin.from('quotes').select('*', { count: 'exact', head: true }).eq('contact_id', access.contact_id),
-    supabaseAdmin.from('contracts').select('*', { count: 'exact', head: true }).eq('contact_id', access.contact_id),
+    supabaseAdmin.from('contracts').select('*', { count: 'exact', head: true }).eq('contact_id', access.contact_id).neq('status', 'voided'),
     supabaseAdmin
       .from('projects')
       .select('*', { count: 'exact', head: true })
       .eq('contact_id', access.contact_id)
-      .not('stage', 'eq', 'cierre'),
+      .not('stage', 'eq', 'cierre')
+      .neq('is_archived', true),
     supabaseAdmin
       .from('calendar_events')
       .select('id, title, type, status, start_at, end_at, location, created_by')
@@ -65,6 +66,7 @@ export default async function ClientPortalPage({ params }: PageProps) {
       .from('contracts')
       .select('id', { count: 'exact', head: true })
       .eq('contact_id', access.contact_id)
+      .neq('status', 'voided')
       .in('status', ['sent', 'viewed']),
     supabaseAdmin
       .from('quotes')
@@ -208,3 +210,4 @@ export default async function ClientPortalPage({ params }: PageProps) {
     </PortalShell>
   )
 }
+

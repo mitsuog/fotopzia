@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -70,6 +70,58 @@ export function ContractActions({
     }
   }
 
+  async function runContractAction(action: 'archive' | 'unarchive') {
+    setError(null)
+    setSuccess(null)
+    setLoadingAction(action)
+    try {
+      const response = await fetch(`/api/contracts/${contractId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const payload = await response.json().catch(() => ({ error: 'No fue posible actualizar el contrato.' }))
+      if (!response.ok) throw new Error(payload.error ?? 'No fue posible actualizar el contrato.')
+      setSuccess(action === 'archive' ? 'Contrato archivado.' : 'Contrato desarchivado y regresado a borrador.')
+      window.location.reload()
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No fue posible actualizar el contrato.')
+    } finally {
+      setLoadingAction(null)
+    }
+  }
+
+  async function deleteContract() {
+    setError(null)
+    setSuccess(null)
+
+    const accepted = window.confirm('Esta accion eliminara el contrato de forma permanente. ¿Deseas continuar?')
+    if (!accepted) return
+
+    const confirmationText = window.prompt('Escribe ELIMINAR para confirmar el borrado permanente.')
+    if (confirmationText !== 'ELIMINAR') {
+      setError('Confirmacion invalida. Debes escribir ELIMINAR exactamente.')
+      return
+    }
+
+    setLoadingAction('delete')
+    try {
+      const response = await fetch(`/api/contracts/${contractId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmationText }),
+      })
+      const payload = await response.json().catch(() => ({ error: 'No fue posible eliminar el contrato.' }))
+      if (!response.ok) throw new Error(payload.error ?? 'No fue posible eliminar el contrato.')
+      router.push('/contracts')
+      router.refresh()
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No fue posible eliminar el contrato.')
+    } finally {
+      setLoadingAction(null)
+    }
+  }
+
   async function sendForSignature() {
     setError(null)
     setSuccess(null)
@@ -117,12 +169,12 @@ export function ContractActions({
   const isApprovedFlow = approvalStatus === 'approved'
   const isInApproval = approvalStatus === 'in_progress' || approvalStatus === 'pending'
   const canReturnToReview = status === 'sent' || status === 'viewed' || isApprovedFlow
+  const isArchived = status === 'voided'
 
   return (
     <div className="space-y-3 rounded-xl border border-brand-stone bg-white p-4">
       <h3 className="text-sm font-semibold text-brand-navy">Acciones de contrato</h3>
 
-      {/* Project link */}
       <div className="rounded-lg border border-brand-stone bg-brand-paper p-3">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Proyecto</p>
         {linkedProject ? (
@@ -137,7 +189,7 @@ export function ContractActions({
               href={`/projects/${linkedProject.id}`}
               className="flex w-full items-center justify-center rounded-lg bg-brand-navy px-3 py-2 text-xs font-semibold text-white hover:bg-brand-navy-light"
             >
-              Ver Proyecto →
+              Ver Proyecto ?
             </Link>
           </div>
         ) : (
@@ -186,7 +238,7 @@ export function ContractActions({
 
       {canApprove && (
         <div className="flex flex-wrap gap-2">
-          {!isInApproval && !isApprovedFlow && status !== 'signed' && (
+          {!isArchived && !isInApproval && !isApprovedFlow && status !== 'signed' && (
             <button
               type="button"
               onClick={() => runApprovalWorkflow('submit_approval')}
@@ -197,7 +249,7 @@ export function ContractActions({
             </button>
           )}
 
-          {isInApproval && (
+          {!isArchived && isInApproval && (
             <>
               <button
                 type="button"
@@ -218,7 +270,7 @@ export function ContractActions({
             </>
           )}
 
-          {isApprovedFlow && status !== 'sent' && status !== 'signed' && (
+          {!isArchived && isApprovedFlow && status !== 'sent' && status !== 'signed' && (
             <button
               type="button"
               onClick={sendForSignature}
@@ -229,7 +281,7 @@ export function ContractActions({
             </button>
           )}
 
-          {canReturnToReview && status !== 'signed' && (
+          {!isArchived && canReturnToReview && status !== 'signed' && (
             <button
               type="button"
               onClick={() => setShowReturnDialog(true)}
@@ -239,6 +291,35 @@ export function ContractActions({
               {loadingAction === 'return_to_review' ? 'Regresando...' : 'Regresar a revision'}
             </button>
           )}
+
+          {!isArchived ? (
+            <button
+              type="button"
+              onClick={() => runContractAction('archive')}
+              disabled={Boolean(loadingAction)}
+              className="rounded-md border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+            >
+              {loadingAction === 'archive' ? 'Archivando...' : 'Archivar contrato'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => runContractAction('unarchive')}
+              disabled={Boolean(loadingAction)}
+              className="rounded-md border border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+            >
+              {loadingAction === 'unarchive' ? 'Desarchivando...' : 'Desarchivar (a borrador)'}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={deleteContract}
+            disabled={Boolean(loadingAction)}
+            className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+          >
+            {loadingAction === 'delete' ? 'Eliminando...' : 'Eliminar permanentemente'}
+          </button>
         </div>
       )}
 

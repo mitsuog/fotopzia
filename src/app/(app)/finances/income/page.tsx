@@ -15,7 +15,7 @@ export default async function IncomePage() {
 
   const [paymentsRes, projectsRes] = await Promise.all([
     db.from('project_payments').select('*, project:projects(id,title)').order('paid_at', { ascending: false }),
-    supabase.from('projects').select('id, title').order('title'),
+    supabase.from('projects').select('id, title').neq('is_archived', true).order('title'),
   ])
 
   return (
@@ -31,3 +31,4 @@ export default async function IncomePage() {
     </div>
   )
 }
+

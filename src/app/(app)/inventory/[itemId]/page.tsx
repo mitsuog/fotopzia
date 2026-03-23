@@ -19,7 +19,7 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
     db.from('equipment_items').select('*, category:equipment_categories(*)').eq('id', itemId).single(),
     db.from('equipment_assignments').select('*, project:projects(id,title)').eq('equipment_id', itemId).order('assigned_at', { ascending: false }),
     db.from('equipment_maintenance').select('*').eq('equipment_id', itemId).order('performed_at', { ascending: false }),
-    supabase.from('projects').select('id, title').order('title'),
+    supabase.from('projects').select('id, title').neq('is_archived', true).order('title'),
   ])
 
   if (itemRes.error || !itemRes.data) notFound()
@@ -40,3 +40,4 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
     </div>
   )
 }
+

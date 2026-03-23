@@ -331,6 +331,7 @@ export async function POST(request: Request) {
     .select('id')
     .eq('contact_id', contactId)
     .neq('stage', 'cierre')
+    .neq('is_archived', true)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -537,3 +538,4 @@ export async function POST(request: Request) {
     },
   })
 }
+

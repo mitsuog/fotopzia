@@ -1,4 +1,4 @@
-﻿import { supabaseAdmin } from '@/lib/supabase/admin'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -28,8 +28,8 @@ export async function GET(
     await Promise.all([
       supabaseAdmin.from('albums').select('*', { count: 'exact', head: true }).eq('contact_id', contactId).eq('is_published', true),
       supabaseAdmin.from('quotes').select('*', { count: 'exact', head: true }).eq('contact_id', contactId),
-      supabaseAdmin.from('contracts').select('*', { count: 'exact', head: true }).eq('contact_id', contactId),
-      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('contact_id', contactId).not('stage', 'eq', 'cierre'),
+      supabaseAdmin.from('contracts').select('*', { count: 'exact', head: true }).eq('contact_id', contactId).neq('status', 'voided'),
+      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('contact_id', contactId).not('stage', 'eq', 'cierre').neq('is_archived', true),
     ])
 
   return NextResponse.json({
@@ -41,3 +41,4 @@ export async function GET(
     },
   })
 }
+

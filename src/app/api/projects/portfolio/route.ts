@@ -29,7 +29,6 @@ type RawWBSNode = {
 export async function GET() {
   const supabase = await createClient()
 
-  // Try full query (requires migration 0022); fall back to base columns if new ones don't exist yet
   let { data: rawProjects, error: projError } = await supabase
     .from('projects')
     .select(`
@@ -39,10 +38,10 @@ export async function GET() {
       assigned_profile:profiles!projects_assigned_to_fkey(full_name)
     `)
     .neq('stage', 'cierre')
+    .neq('is_archived', true)
     .order('created_at', { ascending: false })
 
   if (projError) {
-    // Fallback: query without columns added in migration 0022
     const fallback = await supabase
       .from('projects')
       .select(`
@@ -50,6 +49,7 @@ export async function GET() {
         contact:contacts(first_name, last_name, company_name)
       `)
       .neq('stage', 'cierre')
+      .neq('is_archived', true)
       .order('created_at', { ascending: false })
     if (fallback.error) return NextResponse.json({ error: fallback.error.message }, { status: 400 })
     rawProjects = fallback.data as unknown as typeof rawProjects

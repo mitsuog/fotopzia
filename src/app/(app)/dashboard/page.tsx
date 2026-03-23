@@ -262,6 +262,7 @@ export default async function DashboardPage() {
         contact:contacts(first_name, last_name, company_name)
       `)
       .neq('stage', 'cierre')
+      .neq('is_archived', true)
       .order('created_at', { ascending: false }),
     supabase
       .from('deals')
@@ -274,6 +275,7 @@ export default async function DashboardPage() {
     supabase
       .from('contracts')
       .select('id, contract_number, title, status, sent_at, signed_at, created_at, contact:contacts(first_name, last_name, company_name)')
+      .neq('status', 'voided')
       .order('created_at', { ascending: false }),
     supabase
       .from('calendar_events')
@@ -970,3 +972,4 @@ export default async function DashboardPage() {
     </div>
   )
 }
+

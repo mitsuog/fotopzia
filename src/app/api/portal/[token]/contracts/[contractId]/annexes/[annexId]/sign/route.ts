@@ -29,12 +29,16 @@ export async function POST(
 
   const { data: contract, error: contractError } = await supabaseAdmin
     .from('contracts')
-    .select('id, contact_id, annexes, contract_number, title, created_by, contact:contacts(first_name, last_name)')
+    .select('id, contact_id, annexes, contract_number, title, created_by, status, contact:contacts(first_name, last_name)')
     .eq('id', contractId)
     .single()
 
   if (contractError || !contract || contract.contact_id !== access.contact_id) {
     return NextResponse.json({ error: 'Contrato no disponible para este portal.' }, { status: 404 })
+  }
+
+  if (contract.status !== 'sent' && contract.status !== 'viewed') {
+    return NextResponse.json({ error: 'Este contrato no esta disponible para firma.' }, { status: 400 })
   }
 
   const annexes = toContractAnnexes(contract.annexes)
@@ -115,3 +119,4 @@ export async function POST(
     },
   })
 }
+
