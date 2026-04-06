@@ -54,3 +54,17 @@ export const PERMISSIONS: Record<AppRole, Permission[]> = {
 export function can(role: AppRole, permission: Permission): boolean {
   return PERMISSIONS[role].includes(permission)
 }
+
+export function isAppRole(value: string | null | undefined): value is AppRole {
+  return value === 'admin' || value === 'project_manager' || value === 'operator' || value === 'client'
+}
+
+export function resolveAppRole(value: string | null | undefined): AppRole {
+  if (isAppRole(value)) return value
+  // Keep backwards-compatible behavior when profile role is missing.
+  return 'admin'
+}
+
+export function canAny(role: AppRole, permissions: Permission[]): boolean {
+  return permissions.some(permission => can(role, permission))
+}

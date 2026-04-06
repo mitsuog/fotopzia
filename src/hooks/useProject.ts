@@ -33,8 +33,9 @@ export type ProjectWithAll = {
   id: string
   title: string
   stage: 'preproduccion' | 'primera_revision' | 'produccion' | 'segunda_revision' | 'entrega' | 'cierre'
-  contact_id: string
+  contact_id: string | null
   deal_id: string | null
+  project_type: 'contract' | 'internal' | 'alliance'
   start_date: string | null
   due_date: string | null
   description: string | null
@@ -71,7 +72,7 @@ export function useProject(projectId: string, initial?: ProjectWithAll) {
         const json = await res.json()
         if (!res.ok) {
           setProject(initial)
-          throw new Error(json.error ?? 'Error al actualizar proyecto')
+          throw new Error(json.error?.message ?? json.error ?? 'Error al actualizar proyecto')
         }
         setProject(json.data)
         return json.data as ProjectWithAll
@@ -83,8 +84,7 @@ export function useProject(projectId: string, initial?: ProjectWithAll) {
         setLoading(false)
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectId],
+    [projectId, initial],
   )
 
   return { project, updateProject, loading, error }
@@ -108,7 +108,7 @@ export function useProjectTasks(projectId: string, initial: ProjectTask[] = []) 
         const json = await res.json()
         if (!res.ok) {
           setTasks(snapshotRef.current)
-          throw new Error(json.error ?? 'Error al actualizar tarea')
+          throw new Error(json.error?.message ?? json.error ?? 'Error al actualizar tarea')
         }
         setTasks(prev => prev.map(t => (t.id === taskId ? json.data : t)))
         return json.data as ProjectTask
@@ -117,7 +117,6 @@ export function useProjectTasks(projectId: string, initial: ProjectTask[] = []) 
         throw err
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [projectId, tasks],
   )
 
@@ -127,17 +126,16 @@ export function useProjectTasks(projectId: string, initial: ProjectTask[] = []) 
       setTasks(prev => prev.filter(t => t.id !== taskId))
       try {
         const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, { method: 'DELETE' })
-        if (!res.ok) {
-          setTasks(snapshotRef.current)
-          const json = await res.json()
-          throw new Error(json.error ?? 'Error al eliminar tarea')
-        }
+          if (!res.ok) {
+            setTasks(snapshotRef.current)
+            const json = await res.json()
+            throw new Error(json.error?.message ?? json.error ?? 'Error al eliminar tarea')
+          }
       } catch (err) {
         setTasks(snapshotRef.current)
         throw err
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [projectId, tasks],
   )
 
@@ -151,7 +149,7 @@ export function useProjectTasks(projectId: string, initial: ProjectTask[] = []) 
           body: JSON.stringify(payload),
         })
         const json = await res.json()
-        if (!res.ok) throw new Error(json.error ?? 'Error al crear tarea')
+        if (!res.ok) throw new Error(json.error?.message ?? json.error ?? 'Error al crear tarea')
         setTasks(prev => [json.data, ...prev])
         return json.data as ProjectTask
       } finally {
@@ -182,7 +180,7 @@ export function useProjectDeliverables(projectId: string, initial: ProjectDelive
         const json = await res.json()
         if (!res.ok) {
           setDeliverables(snapshotRef.current)
-          throw new Error(json.error ?? 'Error al actualizar entregable')
+          throw new Error(json.error?.message ?? json.error ?? 'Error al actualizar entregable')
         }
         setDeliverables(prev => prev.map(d => (d.id === deliverableId ? json.data : d)))
         return json.data as ProjectDeliverable
@@ -191,7 +189,6 @@ export function useProjectDeliverables(projectId: string, initial: ProjectDelive
         throw err
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [projectId, deliverables],
   )
 
@@ -205,7 +202,7 @@ export function useProjectDeliverables(projectId: string, initial: ProjectDelive
           body: JSON.stringify(payload),
         })
         const json = await res.json()
-        if (!res.ok) throw new Error(json.error ?? 'Error al crear entregable')
+        if (!res.ok) throw new Error(json.error?.message ?? json.error ?? 'Error al crear entregable')
         setDeliverables(prev => [...prev, json.data])
         return json.data as ProjectDeliverable
       } finally {
@@ -217,4 +214,3 @@ export function useProjectDeliverables(projectId: string, initial: ProjectDelive
 
   return { deliverables, setDeliverables, updateDeliverable, createDeliverable, loading }
 }
-

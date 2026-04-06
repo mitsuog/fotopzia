@@ -51,6 +51,7 @@ export default function NewProjectPage() {
         body: JSON.stringify({
           title: form.title.trim(),
           project_type: form.project_type,
+          stage: form.stage,
           description: form.description || null,
           start_date: form.start_date || null,
           due_date: form.due_date || null,
@@ -59,7 +60,7 @@ export default function NewProjectPage() {
         }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Error al crear proyecto')
+      if (!res.ok) throw new Error(json.error?.message ?? json.error ?? 'Error al crear proyecto')
       router.push(`/projects/${json.data.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear proyecto')

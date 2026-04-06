@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useContacts } from '@/hooks/useContacts'
 import { NewContactSheet } from './NewContactSheet'
@@ -16,10 +16,23 @@ export function ContactsTable({ initialContacts }: ContactsTableProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: contacts = initialContacts } = useContacts()
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('q') ?? '')
   const [isNewContactOpenManually, setIsNewContactOpenManually] = useState(false)
   const openFromQuery = searchParams.get('newContact') === '1'
   const isNewContactOpen = isNewContactOpenManually || openFromQuery
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString())
+    const value = search.trim()
+    if (value) params.set('q', value)
+    else params.delete('q')
+
+    const next = params.toString()
+    const current = searchParams.toString()
+    if (next !== current) {
+      router.replace(next ? `/crm/list?${next}` : '/crm/list', { scroll: false })
+    }
+  }, [router, search, searchParams])
 
   const filtered = useMemo(() => {
     if (!search) return contacts

@@ -10,9 +10,15 @@ export function useProjectPortfolio() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
     fetch('/api/projects/portfolio')
-      .then(r => r.json())
+      .then(async response => {
+        const json = await response.json().catch(() => null)
+        if (!response.ok) {
+          const message = json?.error?.message ?? json?.error ?? 'Error al cargar portfolio'
+          throw new Error(message)
+        }
+        return json
+      })
       .then(json => {
         if (!cancelled) {
           setProjects(json.data ?? [])

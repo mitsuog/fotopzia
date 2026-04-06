@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Image from 'next/image'
 import Link from 'next/link'
@@ -23,15 +23,20 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { getNavConfigForRole } from '@/lib/navigation/config'
+import { resolveAppRole } from '@/lib/utils/permissions'
+import type { NavModuleKey } from '@/types/navigation'
 import type { LucideIcon } from 'lucide-react'
 
 interface NavItem {
+  moduleKey: NavModuleKey
   href: string
   label: string
   icon: LucideIcon
 }
 
 interface NavSection {
+  moduleKey: NavModuleKey
   key: string
   label: string
   icon: LucideIcon
@@ -46,52 +51,55 @@ function isSection(entry: NavEntry): entry is { section: NavSection } {
 }
 
 const NAV_ITEMS: NavEntry[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/crm', label: 'CRM', icon: Users2 },
-  { href: '/crm-calendar', label: 'Agenda CRM', icon: CalendarClock },
-  { href: '/quotes', label: 'Cotizaciones', icon: FileText },
-  { href: '/contracts', label: 'Contratos', icon: ScrollText },
-  { href: '/approvals', label: 'Aprobaciones', icon: CheckCircle2 },
-  { href: '/projects', label: 'Proyectos', icon: BriefcaseBusiness },
-  { href: '/calendar', label: 'Calendario', icon: CalendarDays },
-  { href: '/portfolios', label: 'Portafolios', icon: Images },
+  { moduleKey: 'dashboard', href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { moduleKey: 'crm', href: '/crm', label: 'CRM', icon: Users2 },
+  { moduleKey: 'crm_calendar', href: '/crm-calendar', label: 'Agenda CRM', icon: CalendarClock },
+  { moduleKey: 'quotes', href: '/quotes', label: 'Cotizaciones', icon: FileText },
+  { moduleKey: 'contracts', href: '/contracts', label: 'Contratos', icon: ScrollText },
+  { moduleKey: 'approvals', href: '/approvals', label: 'Aprobaciones', icon: CheckCircle2 },
+  { moduleKey: 'projects', href: '/projects', label: 'Proyectos', icon: BriefcaseBusiness },
+  { moduleKey: 'calendar', href: '/calendar', label: 'Calendario', icon: CalendarDays },
+  { moduleKey: 'portfolios', href: '/portfolios', label: 'Portafolios', icon: Images },
   {
     section: {
+      moduleKey: 'finances',
       key: 'finances',
       label: 'Finanzas',
       icon: DollarSign,
       basePath: '/finances',
       children: [
-        { href: '/finances', label: 'Resumen', icon: DollarSign },
-        { href: '/finances/income', label: 'Ingresos', icon: DollarSign },
-        { href: '/finances/expenses', label: 'Egresos', icon: DollarSign },
-        { href: '/finances/payroll', label: 'Nóminas', icon: DollarSign },
-        { href: '/finances/reports', label: 'Reportes', icon: DollarSign },
+        { moduleKey: 'finances', href: '/finances', label: 'Resumen', icon: DollarSign },
+        { moduleKey: 'finances', href: '/finances/income', label: 'Ingresos', icon: DollarSign },
+        { moduleKey: 'finances', href: '/finances/expenses', label: 'Egresos', icon: DollarSign },
+        { moduleKey: 'finances', href: '/finances/payroll', label: 'Nominas', icon: DollarSign },
+        { moduleKey: 'finances', href: '/finances/reports', label: 'Reportes', icon: DollarSign },
       ],
     },
   },
   {
     section: {
+      moduleKey: 'inventory',
       key: 'inventory',
       label: 'Inventario',
       icon: Package,
       basePath: '/inventory',
       children: [
-        { href: '/inventory', label: 'Equipos', icon: Package },
-        { href: '/inventory/categories', label: 'Categorías', icon: Package },
+        { moduleKey: 'inventory', href: '/inventory', label: 'Equipos', icon: Package },
+        { moduleKey: 'inventory', href: '/inventory/categories', label: 'Categorias', icon: Package },
       ],
     },
   },
   {
     section: {
+      moduleKey: 'settings',
       key: 'settings',
-      label: 'Configuración',
+      label: 'Configuracion',
       icon: Settings2,
       basePath: '/settings',
       children: [
-        { href: '/settings', label: 'General', icon: Settings2 },
-        { href: '/settings/catalogo', label: 'Catálogo de Servicios', icon: Settings2 },
-        { href: '/settings/resources', label: 'Recursos del Estudio', icon: Settings2 },
+        { moduleKey: 'settings', href: '/settings', label: 'General', icon: Settings2 },
+        { moduleKey: 'settings', href: '/settings/catalogo', label: 'Catalogo de servicios', icon: Settings2 },
+        { moduleKey: 'settings', href: '/settings/resources', label: 'Recursos del estudio', icon: Settings2 },
       ],
     },
   },
@@ -128,6 +136,15 @@ export function Sidebar({ user, className, onNavigate, collapsed = false }: Side
   const initials = getInitials(fullName)
   const [avatarFailed, setAvatarFailed] = useState(false)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
+
+  const navConfig = getNavConfigForRole(resolveAppRole(role))
+  const allowedModules = new Set(navConfig.modules)
+  const canCreateContact = navConfig.actions.includes('new_contact')
+
+  const visibleItems = NAV_ITEMS.filter(entry => {
+    if (isSection(entry)) return allowedModules.has(entry.section.moduleKey)
+    return allowedModules.has(entry.moduleKey)
+  })
 
   async function handleLogout() {
     const supabase = createClient()
@@ -208,35 +225,37 @@ export function Sidebar({ user, className, onNavigate, collapsed = false }: Side
         </div>
       </div>
 
-      <div className={cn('px-3 pt-3', collapsed && 'px-2')}>
-        <Link
-          href="/crm/list?newContact=1"
-          onClick={onNavigate}
-          aria-label="Alta de Contacto"
-          title={collapsed ? 'Alta de Contacto' : undefined}
-          className={cn(
-            'group relative inline-flex w-full items-center rounded-lg bg-brand-gold text-xs font-semibold text-white transition-colors hover:bg-brand-gold-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/55 active:scale-[0.98] active:bg-brand-gold-light',
-            collapsed ? 'mx-auto h-12 w-12 justify-center gap-0 px-0' : 'justify-center gap-1.5 px-3 py-2.5',
-          )}
-        >
-          <UserPlus className={cn('shrink-0', collapsed ? 'h-5 w-5' : 'h-3.5 w-3.5')} />
-          {!collapsed && <span className="whitespace-nowrap">Alta de Contacto</span>}
-          <span
+      {canCreateContact && (
+        <div className={cn('px-3 pt-3', collapsed && 'px-2')}>
+          <Link
+            href="/crm/list?newContact=1"
+            onClick={onNavigate}
+            aria-label="Alta de contacto"
+            title={collapsed ? 'Alta de contacto' : undefined}
             className={cn(
-              'pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white shadow-lg transition-all duration-150',
-              collapsed
-                ? 'translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-active:translate-x-0 group-active:opacity-100'
-                : 'hidden',
+              'group relative inline-flex w-full items-center rounded-lg bg-brand-gold text-xs font-semibold text-white transition-colors hover:bg-brand-gold-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/55 active:scale-[0.98] active:bg-brand-gold-light',
+              collapsed ? 'mx-auto h-12 w-12 justify-center gap-0 px-0' : 'justify-center gap-1.5 px-3 py-2.5',
             )}
-            style={{ zIndex: 100 }}
           >
-            Alta de Contacto
-          </span>
-        </Link>
-      </div>
+            <UserPlus className={cn('shrink-0', collapsed ? 'h-5 w-5' : 'h-3.5 w-3.5')} />
+            {!collapsed && <span className="whitespace-nowrap">Alta de contacto</span>}
+            <span
+              className={cn(
+                'pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/20 bg-brand-navy px-2 py-1 text-[11px] font-medium text-white shadow-lg transition-all duration-150',
+                collapsed
+                  ? 'translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-active:translate-x-0 group-active:opacity-100'
+                  : 'hidden',
+              )}
+              style={{ zIndex: 100 }}
+            >
+              Alta de contacto
+            </span>
+          </Link>
+        </div>
+      )}
 
       <nav className={cn('flex-1 space-y-1 overflow-x-hidden overflow-y-auto p-3 pt-4', collapsed && 'px-2')}>
-        {NAV_ITEMS.map((entry, idx) => {
+        {visibleItems.map(entry => {
           if (isSection(entry)) {
             const { section } = entry
             const SectionIcon = section.icon
@@ -244,7 +263,6 @@ export function Sidebar({ user, className, onNavigate, collapsed = false }: Side
             const sectionOpen = isSectionOpen(section.key, section.basePath)
 
             if (collapsed) {
-              // In collapsed mode: show section icon with flyout tooltip showing section label
               return (
                 <div key={section.key} className="relative">
                   <button
@@ -317,8 +335,7 @@ export function Sidebar({ user, className, onNavigate, collapsed = false }: Side
             )
           }
 
-          // Regular nav item
-          const { href, label, icon: Icon } = entry as NavItem
+          const { href, label, icon: Icon } = entry
           const active = isActive(href)
           return (
             <Link

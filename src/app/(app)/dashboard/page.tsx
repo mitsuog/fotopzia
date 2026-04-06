@@ -1,8 +1,7 @@
-import type { ReactNode } from 'react'
+﻿import type { ReactNode } from 'react'
 import Link from 'next/link'
 import {
   AlertTriangle,
-  CalendarClock,
   CircleDollarSign,
   ClipboardList,
   FileClock,
@@ -111,7 +110,7 @@ const STAGE_PROBABILITY_FALLBACK: Record<DealStage, number> = {
 const quoteWorkStatuses = new Set<QuoteStatus>(['sent', 'viewed'])
 const contractPendingSignatureStatuses = new Set<ContractStatus>(['sent', 'viewed'])
 
-// ─── Formatters (Mexico City timezone) ──────────────────────────────────────
+// â”€â”€â”€ Formatters (Mexico City timezone) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TZ = 'America/Mexico_City'
 
@@ -184,7 +183,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-// ─── Components ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface MetricCardProps {
   title: string
@@ -237,7 +236,9 @@ export default async function DashboardPage() {
 
   // For Supabase queries we need real UTC ISO strings
   const nowUTCIso = new Date().toISOString()
-  const in7DaysUTCIso = new Date(Date.now() + 7 * 86400000).toISOString()
+  const in7DaysUTCDate = new Date(nowUTCIso)
+  in7DaysUTCDate.setUTCDate(in7DaysUTCDate.getUTCDate() + 7)
+  const in7DaysUTCIso = in7DaysUTCDate.toISOString()
 
   const [
     { data: profile },
@@ -369,7 +370,7 @@ export default async function DashboardPage() {
     ? Math.round(portfolioProjects.reduce((s, p) => s + p.progress, 0) / portfolioProjects.length)
     : 0
 
-  // ─── Fetch weather via Open-Meteo (no API key required) ──────────────────
+  // â”€â”€â”€ Fetch weather via Open-Meteo (no API key required) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const WMO_ICON: Record<number, string> = {
     0: '01', 1: '01', 2: '02', 3: '04',
     45: '50', 48: '50',
@@ -384,12 +385,12 @@ export default async function DashboardPage() {
     45: 'Niebla', 48: 'Niebla con escarcha',
     51: 'Llovizna ligera', 53: 'Llovizna moderada', 55: 'Llovizna intensa',
     61: 'Lluvia ligera', 63: 'Lluvia moderada', 65: 'Lluvia intensa',
-    71: 'Nieve ligera', 73: 'Nieve moderada', 75: 'Nieve intensa', 77: 'Granizo pequeño',
+    71: 'Nieve ligera', 73: 'Nieve moderada', 75: 'Nieve intensa', 77: 'Granizo pequeÃ±o',
     80: 'Chubascos ligeros', 81: 'Chubascos moderados', 82: 'Chubascos intensos',
-    95: 'Tormenta eléctrica', 96: 'Tormenta con granizo', 99: 'Tormenta intensa con granizo',
+    95: 'Tormenta elÃ©ctrica', 96: 'Tormenta con granizo', 99: 'Tormenta intensa con granizo',
   }
   const wmoIcon = (code: number) => (WMO_ICON[code] ?? '01') + 'd'
-  const wmoDesc = (code: number) => WMO_DESC[code] ?? 'Condición variable'
+  const wmoDesc = (code: number) => WMO_DESC[code] ?? 'CondiciÃ³n variable'
 
   let weatherData: WeatherData | null = null
   try {
@@ -432,10 +433,10 @@ export default async function DashboardPage() {
       }
     }
   } catch {
-    // Graceful fallback — weather widget shows placeholder
+    // Graceful fallback â€” weather widget shows placeholder
   }
 
-  // ─── Deal analysis ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Deal analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const deals = (dealsData ?? []) as DealRow[]
   const quotes = (quotesData ?? []) as QuoteRow[]
   const contracts = (contractsData ?? []) as ContractRow[]
@@ -544,6 +545,64 @@ export default async function DashboardPage() {
     100,
   )
 
+  const priorityActions: Array<{ title: string; description: string; href: string; cta: string; tone: string }> = []
+
+  if ((overdueActivitiesCount ?? 0) > 0) {
+    priorityActions.push({
+      title: 'Resolver actividades vencidas',
+      description: `${formatInteger(overdueActivitiesCount ?? 0)} seguimientos estan fuera de tiempo.`,
+      href: '/crm/list',
+      cta: 'Atender seguimiento',
+      tone: 'border-red-200 bg-red-50/70',
+    })
+  }
+
+  if (quotesExpiredAttention.length > 0 || quotesExpiringSoon.length > 0) {
+    priorityActions.push({
+      title: 'Atender cotizaciones urgentes',
+      description: `${formatInteger(quoteQueue.length)} cotizaciones requieren accion comercial.`,
+      href: '/quotes',
+      cta: 'Revisar cotizaciones',
+      tone: 'border-amber-200 bg-amber-50/70',
+    })
+  }
+
+  if (pendingSignatureContracts.length > 0) {
+    priorityActions.push({
+      title: 'Cerrar firmas pendientes',
+      description: `${formatInteger(pendingSignatureContracts.length)} contratos esperan firma del cliente.`,
+      href: '/contracts',
+      cta: 'Gestionar contratos',
+      tone: 'border-blue-200 bg-blue-50/70',
+    })
+  }
+
+  if (priorityActions.length < 3) {
+    priorityActions.push(
+      {
+        title: 'Actualizar pipeline de deals',
+        description: 'Alinea etapas y siguientes pasos del equipo comercial.',
+        href: '/crm',
+        cta: 'Abrir CRM',
+        tone: 'border-brand-stone/80 bg-brand-paper/45',
+      },
+      {
+        title: 'Validar bloqueos de proyectos',
+        description: 'Confirma riesgos y proximos entregables antes de cierre del dia.',
+        href: '/projects?objective=blocked',
+        cta: 'Revisar bloqueos',
+        tone: 'border-brand-stone/80 bg-brand-paper/45',
+      },
+      {
+        title: 'Preparar agenda operativa',
+        description: 'Asegura reuniones y llamadas de la semana actual.',
+        href: '/calendar',
+        cta: 'Ir a agenda',
+        tone: 'border-brand-stone/80 bg-brand-paper/45',
+      },
+    )
+  }
+
   return (
     <div className="space-y-6 pb-10">
       <PageHeader
@@ -557,7 +616,7 @@ export default async function DashboardPage() {
         actions={
           <>
             <Link
-              href="/crm/kanban"
+              href="/crm"
               className="inline-flex items-center rounded-lg border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy transition-colors hover:border-brand-gold/60"
             >
               Ir a CRM
@@ -578,14 +637,29 @@ export default async function DashboardPage() {
         }
       />
 
-      {/* ─── Section 1: 4 metric cards ──────────────────────────────────── */}
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        {priorityActions.slice(0, 3).map(action => (
+          <article key={action.title} className={`rounded-xl border p-4 shadow-[0_10px_28px_-22px_rgba(28,43,74,0.55)] ${action.tone}`}>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-navy/70">Proxima accion</p>
+            <h2 className="mt-1 text-base font-semibold text-brand-navy">{action.title}</h2>
+            <p className="mt-1 text-sm text-gray-600">{action.description}</p>
+            <Link
+              href={action.href}
+              className="mt-3 inline-flex rounded-md border border-brand-stone bg-white px-2.5 py-1.5 text-xs font-semibold text-brand-navy hover:border-brand-gold/60"
+            >
+              {action.cta}
+            </Link>
+          </article>
+        ))}
+      </section>
+      {/* â”€â”€â”€ Section 1: 4 metric cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Pipeline Activo"
           value={formatInteger(activeDeals.length)}
           subtitle="oportunidades abiertas"
           icon={<CircleDollarSign className="h-5 w-5" />}
-          href="/crm/kanban"
+          href="/crm"
           details={[
             `Valor pipeline: ${formatCurrency(pipelineValue)}`,
             `Valor ponderado: ${formatCurrency(weightedPipelineValue)}`,
@@ -630,14 +704,14 @@ export default async function DashboardPage() {
         />
       </section>
 
-      {/* ─── Section 2: Funnel + Salud + Proyectos ───────────────────────── */}
+      {/* â”€â”€â”€ Section 2: Funnel + Salud + Proyectos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-[2fr_1fr]">
         {/* Conversion funnel */}
         <article className="rounded-2xl border border-brand-stone/80 bg-white/85 p-5 shadow-[0_16px_40px_-26px_rgba(28,43,74,0.5)] backdrop-blur">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-brand-navy">Embudo de conversión</h2>
-              <p className="text-sm text-gray-600">Distribución de oportunidades y tasas de conversión.</p>
+              <h2 className="text-lg font-semibold text-brand-navy">Embudo de conversiÃ³n</h2>
+              <p className="text-sm text-gray-600">DistribuciÃ³n de oportunidades y tasas de conversiÃ³n.</p>
             </div>
             <div className="flex gap-3">
               <div className="rounded-lg border border-brand-stone bg-brand-paper px-3 py-2 text-right">
@@ -667,7 +741,7 @@ export default async function DashboardPage() {
                   <div className="mb-1.5 flex items-center justify-between">
                     <p className="text-sm font-semibold text-brand-navy">{stage.label}</p>
                     <p className="text-xs text-gray-600">
-                      {formatInteger(stage.count)} ops · {formatCurrency(stage.value)}
+                      {formatInteger(stage.count)} ops Â· {formatCurrency(stage.value)}
                     </p>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-brand-stone/60">
@@ -721,7 +795,7 @@ export default async function DashboardPage() {
               <p className="flex items-center justify-between rounded-lg border border-brand-stone/60 bg-brand-paper/50 px-3 py-2">
                 <span className="inline-flex items-center gap-1.5">
                   <AlertTriangle className="h-4 w-4 text-red-500" />
-                  Alertas críticas
+                  Alertas crÃ­ticas
                 </span>
                 <strong>{formatInteger(criticalAlerts)}</strong>
               </p>
@@ -750,7 +824,7 @@ export default async function DashboardPage() {
                 href="/projects?view=portfolio"
                 className="text-xs text-brand-navy/60 hover:text-brand-gold"
               >
-                Ver todos →
+                Ver todos â†’
               </Link>
             </div>
             <ProjectProgressPanel projects={portfolioProjects} />
@@ -758,9 +832,9 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* ─── Section 3: Rendimiento 30d ────────────────────────────────── */}
+      {/* â”€â”€â”€ Section 3: Rendimiento 30d â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="rounded-2xl border border-brand-stone/80 bg-white/85 p-5 shadow-[0_16px_40px_-26px_rgba(28,43,74,0.5)] backdrop-blur">
-        <h2 className="mb-3 text-lg font-semibold text-brand-navy">Rendimiento últimos 30 días</h2>
+        <h2 className="mb-3 text-lg font-semibold text-brand-navy">Rendimiento Ãºltimos 30 dÃ­as</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { label: 'Valor cotizado', value: formatCurrency(quoteValueLast30) },
@@ -776,7 +850,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* ─── Section 4: Lists ─────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Section 4: Lists â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <article className="rounded-2xl border border-brand-stone/80 bg-white/85 p-5 shadow-[0_16px_40px_-26px_rgba(28,43,74,0.5)] backdrop-blur">
           <div className="mb-3 flex items-center justify-between">
@@ -801,7 +875,7 @@ export default async function DashboardPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-brand-navy">
-                          {quote.quote_number} · {quote.title}
+                          {quote.quote_number} Â· {quote.title}
                         </p>
                         <p className="mt-0.5 truncate text-xs text-gray-600">{fullContactName(quote.contact)}</p>
                       </div>
@@ -848,7 +922,7 @@ export default async function DashboardPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-brand-navy">
-                        {contract.contract_number} · {contract.title}
+                        {contract.contract_number} Â· {contract.title}
                       </p>
                       <p className="mt-0.5 truncate text-xs text-gray-600">{fullContactName(contract.contact)}</p>
                     </div>
@@ -864,7 +938,7 @@ export default async function DashboardPage() {
         <div className="space-y-5">
           <article className="rounded-2xl border border-brand-stone/80 bg-white/85 p-5 shadow-[0_16px_40px_-26px_rgba(28,43,74,0.5)] backdrop-blur">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-brand-navy">Agenda 7 días</h2>
+              <h2 className="text-lg font-semibold text-brand-navy">Agenda 7 dÃ­as</h2>
               <span className="rounded-full bg-brand-paper px-2 py-1 text-xs font-medium text-brand-navy">
                 {formatInteger(upcomingEventsCount ?? 0)}
               </span>
@@ -916,7 +990,7 @@ export default async function DashboardPage() {
                       {activity.subject || 'Actividad sin asunto'}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-gray-600">
-                      {activity.deal?.title ? `${activity.deal.title} · ` : ''}
+                      {activity.deal?.title ? `${activity.deal.title} Â· ` : ''}
                       {fullContactName(activity.contact)}
                     </p>
                     <div className="mt-2 flex items-center justify-between text-xs text-gray-600">
@@ -931,12 +1005,12 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* ─── Section 5: Risk pipeline ─────────────────────────────────── */}
+      {/* â”€â”€â”€ Section 5: Risk pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="rounded-2xl border border-brand-stone/80 bg-white/85 p-5 shadow-[0_16px_40px_-26px_rgba(28,43,74,0.5)] backdrop-blur">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-brand-navy">Focos rojos del pipeline</h2>
           <Link
-            href="/crm/kanban"
+            href="/crm"
             className="inline-flex items-center gap-1 rounded-md border border-brand-stone bg-brand-paper px-2.5 py-1 text-xs font-medium text-brand-navy hover:border-brand-gold/60"
           >
             Atender en CRM
@@ -972,4 +1046,6 @@ export default async function DashboardPage() {
     </div>
   )
 }
+
+
 

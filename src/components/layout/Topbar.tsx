@@ -1,9 +1,11 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
-import { ChevronRight, Menu, UserPlus, Handshake, FilePlus2 } from 'lucide-react'
+import { ChevronRight, Command, FilePlus2, Handshake, Menu, UserPlus, BriefcaseBusiness } from 'lucide-react'
 import { usePathname } from 'next/navigation'
+import { getNavConfigForRole } from '@/lib/navigation/config'
+import { resolveAppRole } from '@/lib/utils/permissions'
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -32,10 +34,10 @@ function getLabel(segment: string, index: number, segments: string[]): string {
 
   if (isOpaqueId(segment)) {
     const parent = segments[index - 1]
-    if (parent === 'crm') return 'Detalle Contacto'
-    if (parent === 'quotes') return 'Detalle Cotizacion'
-    if (parent === 'projects') return 'Detalle Proyecto'
-    if (parent === 'contracts') return 'Detalle Contrato'
+    if (parent === 'crm') return 'Detalle contacto'
+    if (parent === 'quotes') return 'Detalle cotizacion'
+    if (parent === 'projects') return 'Detalle proyecto'
+    if (parent === 'contracts') return 'Detalle contrato'
     return 'Detalle'
   }
 
@@ -60,14 +62,19 @@ interface TopbarProps {
     }
   }
   onMenuClick?: () => void
+  onCommandPalette?: () => void
 }
 
-export function Topbar({ user, onMenuClick }: TopbarProps) {
+export function Topbar({ user, onMenuClick, onCommandPalette }: TopbarProps) {
   const pathname = usePathname()
   const [avatarFailed, setAvatarFailed] = useState(false)
   const fullName = user.profile?.full_name
   const avatarUrl = user.profile?.avatar_url ?? null
   const initials = getInitials(fullName, user.email)
+
+  const role = resolveAppRole(user.profile?.role)
+  const navConfig = getNavConfigForRole(role)
+
   const segments = pathname.split('/').filter(Boolean)
   const currentLabel = segments.length > 0 ? getLabel(segments[segments.length - 1], segments.length - 1, segments) : 'Dashboard'
 
@@ -77,45 +84,61 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
     isLast: idx === segments.length - 1,
   }))
 
+  const can = (action: string) => navConfig.actions.includes(action as typeof navConfig.actions[number])
+
   let actionButton: ReactNode = null
 
   if (pathname.startsWith('/crm')) {
     actionButton = (
       <div className="flex items-center gap-2">
-        <Link
-          href="/crm/list?newContact=1"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy transition-colors hover:border-brand-gold/60 hover:bg-brand-paper"
-        >
-          <UserPlus className="h-3.5 w-3.5" />
-          Nuevo Contacto
-        </Link>
-        <Link
-          href="/crm/kanban"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-navy-light"
-        >
-          <Handshake className="h-3.5 w-3.5" />
-          Nuevo Deal
-        </Link>
+        {can('new_contact') && (
+          <Link
+            href="/crm/list?newContact=1"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-stone bg-white px-3 py-1.5 text-xs font-medium text-brand-navy transition-colors hover:border-brand-gold/60 hover:bg-brand-paper"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Crear contacto
+          </Link>
+        )}
+        {can('new_deal') && (
+          <Link
+            href="/crm?newDeal=1"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-navy-light"
+          >
+            <Handshake className="h-3.5 w-3.5" />
+            Crear deal
+          </Link>
+        )}
       </div>
     )
-  } else if (pathname.startsWith('/quotes')) {
+  } else if (pathname.startsWith('/quotes') && can('new_quote')) {
     actionButton = (
       <Link
         href="/quotes/new"
         className="inline-flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-navy-light"
       >
         <FilePlus2 className="h-3.5 w-3.5" />
-        Nueva Cotizacion
+        Crear cotizacion
       </Link>
     )
-  } else if (pathname.startsWith('/contracts')) {
+  } else if (pathname.startsWith('/contracts') && can('new_contract')) {
     actionButton = (
       <Link
         href="/contracts/new"
         className="inline-flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-navy-light"
       >
         <FilePlus2 className="h-3.5 w-3.5" />
-        Nuevo Contrato
+        Crear contrato
+      </Link>
+    )
+  } else if (pathname.startsWith('/projects') && can('new_project')) {
+    actionButton = (
+      <Link
+        href="/projects/new"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-navy-light"
+      >
+        <BriefcaseBusiness className="h-3.5 w-3.5" />
+        Crear proyecto
       </Link>
     )
   }
@@ -154,6 +177,19 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {onCommandPalette && (
+            <button
+              type="button"
+              onClick={onCommandPalette}
+              className="hidden items-center gap-1.5 rounded-lg border border-brand-stone bg-white px-2 py-1.5 text-xs text-gray-600 transition-colors hover:bg-brand-paper sm:inline-flex"
+              aria-label="Abrir comando rapido"
+              title="Comando rapido (Ctrl+K)"
+            >
+              <Command className="h-3.5 w-3.5" />
+              Ctrl+K
+            </button>
+          )}
+
           {actionButton && <div className="hidden sm:flex sm:items-center">{actionButton}</div>}
           <Link
             href="/settings"
@@ -180,3 +216,4 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
     </header>
   )
 }
+

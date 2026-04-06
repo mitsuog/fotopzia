@@ -151,7 +151,7 @@ export function ContractActions({
         body: JSON.stringify({ contact_id: contactId, title: projectTitle ?? 'Proyecto sin titulo' }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'No fue posible crear el proyecto.')
+      if (!res.ok) throw new Error(json.error?.message ?? json.error ?? 'No fue posible crear el proyecto.')
       router.push(`/projects/${json.data.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear proyecto')

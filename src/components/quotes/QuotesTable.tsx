@@ -1,13 +1,16 @@
-'use client'
+﻿'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Eye, Printer, Search } from 'lucide-react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useQuotes } from '@/hooks/useQuotes'
 import { QuoteStatusBadge } from './QuoteStatusBadge'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type { Quote, QuoteStatus } from '@/types/quotes'
+import type { ListViewQuery } from '@/types/list-view'
 
 const STATUS_TABS: { value: QuoteStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todas' },
@@ -19,10 +22,37 @@ const STATUS_TABS: { value: QuoteStatus | 'all'; label: string }[] = [
   { value: 'expired', label: 'Vencidas' },
 ]
 
+function parseInitialQuery(searchParams: ReturnType<typeof useSearchParams>): ListViewQuery {
+  const status = searchParams.get('status')
+  const normalizedStatus = STATUS_TABS.some(tab => tab.value === status) ? status : 'all'
+
+  return {
+    q: searchParams.get('q') ?? undefined,
+    status: normalizedStatus ?? 'all',
+  }
+}
+
 export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: quotes = initialQuotes } = useQuotes()
-  const [activeStatus, setActiveStatus] = useState<QuoteStatus | 'all'>('all')
-  const [search, setSearch] = useState('')
+
+  const initialQuery = parseInitialQuery(searchParams)
+  const [activeStatus, setActiveStatus] = useState<QuoteStatus | 'all'>((initialQuery.status as QuoteStatus | 'all') ?? 'all')
+  const [search, setSearch] = useState(initialQuery.q ?? '')
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams()
+    if (search.trim()) nextParams.set('q', search.trim())
+    if (activeStatus !== 'all') nextParams.set('status', activeStatus)
+
+    const next = nextParams.toString()
+    const current = searchParams.toString()
+    if (next !== current) {
+      router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
+    }
+  }, [activeStatus, pathname, router, search, searchParams])
 
   const supersededMap = useMemo(() => {
     const activeStatuses: QuoteStatus[] = ['draft', 'sent', 'viewed', 'approved']
@@ -47,15 +77,20 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
 
   const filtered = useMemo(() => {
     let list = quotes
-    if (activeStatus !== 'all') list = list.filter(quote => quote.status === activeStatus)
-    if (search) {
-      const query = search.toLowerCase()
+
+    if (activeStatus !== 'all') {
+      list = list.filter(quote => quote.status === activeStatus)
+    }
+
+    if (search.trim()) {
+      const query = search.trim().toLowerCase()
       list = list.filter(quote =>
         quote.title.toLowerCase().includes(query)
-        || quote.quote_number.toLowerCase().includes(query)
-        || (quote.contact && `${quote.contact.first_name} ${quote.contact.last_name}`.toLowerCase().includes(query)),
+          || quote.quote_number.toLowerCase().includes(query)
+          || (quote.contact && `${quote.contact.first_name} ${quote.contact.last_name}`.toLowerCase().includes(query)),
       )
     }
+
     return list
   }, [quotes, activeStatus, search])
 
@@ -65,10 +100,12 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
     return map
   }, [quotes])
 
+  const hasFilters = Boolean(search.trim() || activeStatus !== 'all')
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
+        <div className="scrollbar-none flex flex-nowrap gap-1 overflow-x-auto pb-1 sm:flex-wrap">
           {STATUS_TABS.map(tab => (
             <button
               key={tab.value}
@@ -102,12 +139,18 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
         </div>
       </div>
 
-      {/* Mobile: card stack */}
-      <div className="block sm:hidden space-y-2">
+      {hasFilters && (
+        <p className="text-xs text-gray-500">Mostrando {filtered.length} de {quotes.length} cotizaciones</p>
+      )}
+
+      <div className="block space-y-2 sm:hidden">
         {filtered.length === 0 ? (
-          <p className="py-14 text-center text-sm text-gray-400 italic">
-            {search || activeStatus !== 'all' ? 'Sin cotizaciones que coincidan' : 'No hay cotizaciones aún.'}
-          </p>
+          <EmptyState
+            title={hasFilters ? 'No encontramos cotizaciones con esos filtros.' : 'No hay cotizaciones aun.'}
+            description={hasFilters ? 'Ajusta estado o busqueda para ver resultados.' : 'Crea la primera cotizacion para iniciar tu pipeline.'}
+            ctaLabel={hasFilters ? undefined : 'Crear cotizacion'}
+            ctaHref={hasFilters ? undefined : '/quotes/new'}
+          />
         ) : (
           filtered.map(quote => (
             <Link
@@ -117,14 +160,14 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
             >
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-[10px] text-gray-400">{quote.quote_number}</p>
-                <p className="font-semibold text-brand-navy truncate">{quote.title}</p>
+                <p className="truncate font-semibold text-brand-navy">{quote.title}</p>
                 {quote.contact && (
                   <p className="text-xs text-gray-500">{quote.contact.first_name} {quote.contact.last_name}</p>
                 )}
               </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
+              <div className="shrink-0 flex flex-col items-end gap-1">
                 <QuoteStatusBadge status={quote.status} />
-                <p className="font-semibold text-sm tabular-nums text-brand-navy">
+                <p className="text-sm font-semibold tabular-nums text-brand-navy">
                   ${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 0 })}
                 </p>
                 {quote.valid_until && (
@@ -136,8 +179,7 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
         )}
       </div>
 
-      {/* Desktop: table */}
-      <div className="hidden sm:block overflow-hidden rounded-xl border border-brand-stone bg-brand-paper">
+      <div className="hidden overflow-hidden rounded-xl border border-brand-stone bg-brand-paper sm:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-sm">
             <thead>
@@ -155,8 +197,8 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-14 text-center text-sm text-gray-400 italic">
-                    {search || activeStatus !== 'all'
-                      ? 'Sin cotizaciones que coincidan con el filtro'
+                    {hasFilters
+                      ? 'Sin cotizaciones que coincidan con el filtro.'
                       : 'No hay cotizaciones aun. Crea la primera.'}
                   </td>
                 </tr>
@@ -167,10 +209,10 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
                 return (
                   <tr
                     key={quote.id}
-                    className="border-b border-brand-stone/40 transition-colors hover:bg-brand-canvas/50 last:border-0"
+                    className="last:border-0 border-b border-brand-stone/40 transition-colors hover:bg-brand-canvas/50"
                   >
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{quote.quote_number}</td>
-                    <td className="px-4 py-3 font-medium text-brand-navy max-w-[200px] truncate">{quote.title}</td>
+                    <td className="max-w-[200px] truncate px-4 py-3 font-medium text-brand-navy">{quote.title}</td>
                     <td className="px-4 py-3 text-gray-600">
                       {quote.contact ? `${quote.contact.first_name} ${quote.contact.last_name}` : '-'}
                     </td>
@@ -200,7 +242,7 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/quotes/${quote.id}`}
-                          className="inline-flex items-center gap-1 text-xs text-brand-navy hover:text-brand-gold transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-brand-navy transition-colors hover:text-brand-gold"
                         >
                           <Eye className="h-3.5 w-3.5" /> Ver
                         </Link>
@@ -208,7 +250,7 @@ export function QuotesTable({ initialQuotes }: { initialQuotes: Quote[] }) {
                           href={`/quotes/${quote.id}/print`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-brand-navy transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-brand-navy"
                           title="Imprimir / PDF"
                         >
                           <Printer className="h-3.5 w-3.5" />
