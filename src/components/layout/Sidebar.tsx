@@ -76,19 +76,7 @@ const NAV_ITEMS: NavEntry[] = [
       ],
     },
   },
-  {
-    section: {
-      moduleKey: 'inventory',
-      key: 'inventory',
-      label: 'Inventario',
-      icon: Package,
-      basePath: '/inventory',
-      children: [
-        { moduleKey: 'inventory', href: '/inventory', label: 'Equipos', icon: Package },
-        { moduleKey: 'inventory', href: '/inventory/categories', label: 'Categorias', icon: Package },
-      ],
-    },
-  },
+  { moduleKey: 'inventory', href: '/inventory', label: 'Inventario', icon: Package },
   {
     section: {
       moduleKey: 'settings',
@@ -99,7 +87,6 @@ const NAV_ITEMS: NavEntry[] = [
       children: [
         { moduleKey: 'settings', href: '/settings', label: 'General', icon: Settings2 },
         { moduleKey: 'settings', href: '/settings/catalogo', label: 'Catalogo de servicios', icon: Settings2 },
-        { moduleKey: 'settings', href: '/settings/resources', label: 'Recursos del estudio', icon: Settings2 },
       ],
     },
   },

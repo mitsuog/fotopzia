@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { InventoryPageClient } from '@/components/inventory/InventoryPageClient'
-import type { EquipmentItem, EquipmentCategory, EquipmentActivityLogEntry, EquipmentCondition } from '@/types/inventory'
+import { InventoryShell } from '@/components/inventory/InventoryShell'
+import type { EquipmentItem, EquipmentCategory, EquipmentActivityLogEntry, EquipmentCondition, StudioResource } from '@/types/inventory'
 
 export const dynamic = 'force-dynamic'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
- type AnyTable = any
+type AnyTable = any
 
 type ProfileOption = {
   id: string
@@ -43,7 +43,17 @@ export default async function InventoryPage() {
   const { data: auth } = await supabase.auth.getUser()
   const viewerId = auth.user?.id ?? null
 
-  const [itemsRes, categoriesRes, profilesRes, assignmentsRes, activityRes, projectsRes, viewerRes] = await Promise.all([
+  const [
+    itemsRes,
+    categoriesRes,
+    profilesRes,
+    assignmentsRes,
+    activityRes,
+    projectsRes,
+    viewerRes,
+    resourcesRes,
+    equipmentItemOptionsRes,
+  ] = await Promise.all([
     db.from('equipment_items').select('*, category:equipment_categories(*)').order('created_at', { ascending: false }),
     db.from('equipment_categories').select('*').order('sort_order'),
     db.from('profiles').select('id, full_name, email, role').eq('is_active', true).order('full_name'),
@@ -59,6 +69,17 @@ export default async function InventoryPage() {
       .limit(120),
     db.from('projects').select('id, title').neq('is_archived', true).order('title'),
     viewerId ? db.from('profiles').select('role').eq('id', viewerId).single() : Promise.resolve({ data: null }),
+    db
+      .from('resources')
+      .select('*, equipment_item:equipment_items(id, name, status, condition, is_decommissioned)')
+      .order('type')
+      .order('name'),
+    db
+      .from('equipment_items')
+      .select('id, name, asset_tag, status, is_decommissioned')
+      .eq('is_decommissioned', false)
+      .neq('status', 'retirado')
+      .order('name'),
   ])
 
   const viewerRole = viewerRes?.data?.role ?? null
@@ -67,11 +88,11 @@ export default async function InventoryPage() {
     <div className="space-y-5">
       <PageHeader
         title="Inventario operativo"
-        subtitle="Administra catalogo, asignaciones y trazabilidad del equipo con control administrativo."
+        subtitle="Administra equipos, categorías y recursos del estudio."
         badge="Studio Ops"
       />
 
-      <InventoryPageClient
+      <InventoryShell
         initialItems={(itemsRes.data ?? []) as EquipmentItem[]}
         categories={(categoriesRes.data ?? []) as EquipmentCategory[]}
         profiles={(profilesRes.data ?? []) as ProfileOption[]}
@@ -79,6 +100,8 @@ export default async function InventoryPage() {
         initialAssignments={(assignmentsRes.data ?? []) as AssignmentWorkspaceRow[]}
         initialActivity={(activityRes.data ?? []) as EquipmentActivityLogEntry[]}
         viewerRole={viewerRole}
+        initialResources={(resourcesRes.data ?? []) as unknown as StudioResource[]}
+        equipmentItemOptions={(equipmentItemOptionsRes.data ?? []) as { id: string; name: string; asset_tag: string; status: string }[]}
       />
     </div>
   )

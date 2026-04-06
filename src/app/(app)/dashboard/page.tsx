@@ -385,12 +385,12 @@ export default async function DashboardPage() {
     45: 'Niebla', 48: 'Niebla con escarcha',
     51: 'Llovizna ligera', 53: 'Llovizna moderada', 55: 'Llovizna intensa',
     61: 'Lluvia ligera', 63: 'Lluvia moderada', 65: 'Lluvia intensa',
-    71: 'Nieve ligera', 73: 'Nieve moderada', 75: 'Nieve intensa', 77: 'Granizo pequeÃ±o',
+    71: 'Nieve ligera', 73: 'Nieve moderada', 75: 'Nieve intensa', 77: 'Granizo pequeño',
     80: 'Chubascos ligeros', 81: 'Chubascos moderados', 82: 'Chubascos intensos',
-    95: 'Tormenta elÃ©ctrica', 96: 'Tormenta con granizo', 99: 'Tormenta intensa con granizo',
+    95: 'Tormenta eléctrica', 96: 'Tormenta con granizo', 99: 'Tormenta intensa con granizo',
   }
   const wmoIcon = (code: number) => (WMO_ICON[code] ?? '01') + 'd'
-  const wmoDesc = (code: number) => WMO_DESC[code] ?? 'CondiciÃ³n variable'
+  const wmoDesc = (code: number) => WMO_DESC[code] ?? 'Condición variable'
 
   let weatherData: WeatherData | null = null
   try {
@@ -710,8 +710,8 @@ export default async function DashboardPage() {
         <article className="rounded-2xl border border-brand-stone/80 bg-white/85 p-5 shadow-[0_16px_40px_-26px_rgba(28,43,74,0.5)] backdrop-blur">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-brand-navy">Embudo de conversiÃ³n</h2>
-              <p className="text-sm text-gray-600">DistribuciÃ³n de oportunidades y tasas de conversiÃ³n.</p>
+              <h2 className="text-lg font-semibold text-brand-navy">Embudo de conversión</h2>
+              <p className="text-sm text-gray-600">Distribución de oportunidades y tasas de conversión.</p>
             </div>
             <div className="flex gap-3">
               <div className="rounded-lg border border-brand-stone bg-brand-paper px-3 py-2 text-right">
@@ -741,7 +741,7 @@ export default async function DashboardPage() {
                   <div className="mb-1.5 flex items-center justify-between">
                     <p className="text-sm font-semibold text-brand-navy">{stage.label}</p>
                     <p className="text-xs text-gray-600">
-                      {formatInteger(stage.count)} ops Â· {formatCurrency(stage.value)}
+                      {formatInteger(stage.count)} ops · {formatCurrency(stage.value)}
                     </p>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-brand-stone/60">
@@ -795,7 +795,7 @@ export default async function DashboardPage() {
               <p className="flex items-center justify-between rounded-lg border border-brand-stone/60 bg-brand-paper/50 px-3 py-2">
                 <span className="inline-flex items-center gap-1.5">
                   <AlertTriangle className="h-4 w-4 text-red-500" />
-                  Alertas crÃ­ticas
+                  Alertas críticas
                 </span>
                 <strong>{formatInteger(criticalAlerts)}</strong>
               </p>
@@ -834,7 +834,7 @@ export default async function DashboardPage() {
 
       {/* â”€â”€â”€ Section 3: Rendimiento 30d â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="rounded-2xl border border-brand-stone/80 bg-white/85 p-5 shadow-[0_16px_40px_-26px_rgba(28,43,74,0.5)] backdrop-blur">
-        <h2 className="mb-3 text-lg font-semibold text-brand-navy">Rendimiento Ãºltimos 30 dÃ­as</h2>
+        <h2 className="mb-3 text-lg font-semibold text-brand-navy">Rendimiento últimos 30 días</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { label: 'Valor cotizado', value: formatCurrency(quoteValueLast30) },
@@ -875,7 +875,7 @@ export default async function DashboardPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-brand-navy">
-                          {quote.quote_number} Â· {quote.title}
+                          {quote.quote_number} · {quote.title}
                         </p>
                         <p className="mt-0.5 truncate text-xs text-gray-600">{fullContactName(quote.contact)}</p>
                       </div>
@@ -922,7 +922,7 @@ export default async function DashboardPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-brand-navy">
-                        {contract.contract_number} Â· {contract.title}
+                        {contract.contract_number} · {contract.title}
                       </p>
                       <p className="mt-0.5 truncate text-xs text-gray-600">{fullContactName(contract.contact)}</p>
                     </div>
@@ -938,7 +938,7 @@ export default async function DashboardPage() {
         <div className="space-y-5">
           <article className="rounded-2xl border border-brand-stone/80 bg-white/85 p-5 shadow-[0_16px_40px_-26px_rgba(28,43,74,0.5)] backdrop-blur">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-brand-navy">Agenda 7 dÃ­as</h2>
+              <h2 className="text-lg font-semibold text-brand-navy">Agenda 7 días</h2>
               <span className="rounded-full bg-brand-paper px-2 py-1 text-xs font-medium text-brand-navy">
                 {formatInteger(upcomingEventsCount ?? 0)}
               </span>
@@ -990,7 +990,7 @@ export default async function DashboardPage() {
                       {activity.subject || 'Actividad sin asunto'}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-gray-600">
-                      {activity.deal?.title ? `${activity.deal.title} Â· ` : ''}
+                      {activity.deal?.title ? `${activity.deal.title} · ` : ''}
                       {fullContactName(activity.contact)}
                     </p>
                     <div className="mt-2 flex items-center justify-between text-xs text-gray-600">
