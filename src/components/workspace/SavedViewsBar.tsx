@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { Bookmark, Pin, Plus, Save, Settings2, Trash2 } from 'lucide-react'
@@ -12,6 +12,12 @@ interface SavedViewsBarProps {
 }
 
 type DialogMode = 'create' | 'edit'
+
+function moduleViewLabel(module: WorkspaceModule): string {
+  if (module === 'crm') return 'Vista CRM'
+  if (module === 'projects') return 'Vista Proyectos'
+  return 'Vista Inventario'
+}
 
 export function SavedViewsBar({ module, currentQuery, onApplyQuery }: SavedViewsBarProps) {
   const {
@@ -65,7 +71,7 @@ export function SavedViewsBar({ module, currentQuery, onApplyQuery }: SavedViews
   }, [currentQuery, defaultViewId, lastQuery, onApplyQuery, views])
 
   function openDialog(mode: DialogMode) {
-    const fallbackName = module === 'crm' ? 'Vista CRM' : 'Vista Proyectos'
+    const fallbackName = moduleViewLabel(module)
     const defaultName = mode === 'edit' && selectedView ? selectedView.name : fallbackName
     const defaultPinned = mode === 'edit' && selectedView ? selectedView.pinned : false
     const defaultAsDefault = mode === 'edit' && selectedView ? defaultViewId === selectedView.id : false
@@ -257,7 +263,7 @@ export function SavedViewsBar({ module, currentQuery, onApplyQuery }: SavedViews
                     if (draftError) setDraftError(null)
                   }}
                   className="w-full rounded-md border border-brand-stone px-3 py-2 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-gold/40"
-                  placeholder={module === 'crm' ? 'Vista CRM' : 'Vista Proyectos'}
+                  placeholder={moduleViewLabel(module)}
                 />
               </div>
 
@@ -307,4 +313,5 @@ export function SavedViewsBar({ module, currentQuery, onApplyQuery }: SavedViews
     </>
   )
 }
+
 

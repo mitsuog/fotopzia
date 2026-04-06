@@ -37,6 +37,10 @@ export interface EquipmentItem {
   location: EquipmentLocation
   notes: string | null
   photo_url: string | null
+  is_decommissioned?: boolean
+  decommissioned_at?: string | null
+  decommissioned_by?: string | null
+  decommission_reason?: string | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -65,6 +69,29 @@ export interface EquipmentAssignment {
   assignee?: { id: string; full_name: string | null } | null
 }
 
+export type EquipmentEventType =
+  | 'created'
+  | 'updated'
+  | 'assignment_created'
+  | 'assignment_returned'
+  | 'maintenance_created'
+  | 'decommissioned'
+  | 'reactivated'
+  | 'deleted'
+  | 'calendar_assignment_opened'
+  | 'calendar_assignment_closed'
+
+export interface EquipmentActivityLogEntry {
+  id: string
+  equipment_id: string
+  event_type: EquipmentEventType | string
+  actor_id: string | null
+  payload: Record<string, unknown>
+  created_at: string
+  equipment?: Pick<EquipmentItem, 'id' | 'name' | 'asset_tag'> | null
+  actor?: { id: string; full_name: string | null; email?: string | null } | null
+}
+
 export interface EquipmentMaintenance {
   id: string
   equipment_id: string
@@ -82,31 +109,44 @@ export interface EquipmentMaintenance {
 
 export const CONDITION_CONFIG: Record<EquipmentCondition, { label: string; badge: string; dot: string }> = {
   excelente:        { label: 'Excelente',         badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
-  bueno:            { label: 'Bueno',              badge: 'bg-green-100 text-green-700',     dot: 'bg-green-500' },
-  regular:          { label: 'Regular',            badge: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-500' },
-  malo:             { label: 'Malo',               badge: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-500' },
-  fuera_de_servicio:{ label: 'Fuera de servicio',  badge: 'bg-red-100 text-red-700',         dot: 'bg-red-500' },
+  bueno:            { label: 'Bueno',             badge: 'bg-green-100 text-green-700',     dot: 'bg-green-500' },
+  regular:          { label: 'Regular',           badge: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-500' },
+  malo:             { label: 'Malo',              badge: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-500' },
+  fuera_de_servicio:{ label: 'Fuera de servicio', badge: 'bg-red-100 text-red-700',         dot: 'bg-red-500' },
 }
 
 export const STATUS_CONFIG: Record<EquipmentStatus, { label: string; badge: string; dot: string }> = {
-  disponible:   { label: 'Disponible',   badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
-  en_uso:       { label: 'En uso',       badge: 'bg-blue-100 text-blue-700',       dot: 'bg-blue-500' },
-  mantenimiento:{ label: 'Mantenimiento',badge: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-500' },
-  retirado:     { label: 'Retirado',     badge: 'bg-gray-100 text-gray-600',       dot: 'bg-gray-400' },
+  disponible:    { label: 'Disponible',    badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+  en_uso:        { label: 'En uso',        badge: 'bg-blue-100 text-blue-700',       dot: 'bg-blue-500' },
+  mantenimiento: { label: 'Mantenimiento', badge: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-500' },
+  retirado:      { label: 'Retirado',      badge: 'bg-gray-100 text-gray-600',       dot: 'bg-gray-400' },
 }
 
 export const LOCATION_LABELS: Record<EquipmentLocation, string> = {
-  estudio:  'Estudio',
-  almacen:  'Almacén',
+  estudio: 'Estudio',
+  almacen: 'Almacen',
   en_campo: 'En campo',
   prestado: 'Prestado',
 }
 
 export const MAINTENANCE_TYPE_LABELS: Record<MaintenanceType, string> = {
-  preventivo:   'Preventivo',
-  correctivo:   'Correctivo',
-  calibracion:  'Calibración',
-  limpieza:     'Limpieza',
+  preventivo: 'Preventivo',
+  correctivo: 'Correctivo',
+  calibracion: 'Calibracion',
+  limpieza: 'Limpieza',
+}
+
+export const EQUIPMENT_EVENT_LABELS: Record<EquipmentEventType, string> = {
+  created: 'Alta de equipo',
+  updated: 'Actualizacion de equipo',
+  assignment_created: 'Salida registrada',
+  assignment_returned: 'Devolucion registrada',
+  maintenance_created: 'Mantenimiento registrado',
+  decommissioned: 'Equipo dado de baja',
+  reactivated: 'Equipo reactivado',
+  deleted: 'Equipo eliminado',
+  calendar_assignment_opened: 'Asignacion por calendario',
+  calendar_assignment_closed: 'Cierre por calendario',
 }
 
 export interface StudioResource {

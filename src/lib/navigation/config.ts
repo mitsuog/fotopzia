@@ -1,4 +1,4 @@
-﻿import type { NavConfigByRole, NavModuleKey, QuickActionKey } from '@/types/navigation'
+import type { NavConfigByRole, NavModuleKey, QuickActionKey } from '@/types/navigation'
 import type { Permission, AppRole } from '@/lib/utils/permissions'
 import { PERMISSIONS, canAny, resolveAppRole } from '@/lib/utils/permissions'
 
@@ -42,6 +42,7 @@ const QUICK_ACTION_DEFINITIONS: QuickActionDefinition[] = [
   { key: 'new_quote', label: 'Crear cotizacion', href: '/quotes/new', permissions: ['manage_quotes'] },
   { key: 'new_contract', label: 'Crear contrato', href: '/contracts/new', permissions: ['manage_contracts'] },
   { key: 'new_project', label: 'Crear proyecto', href: '/projects/new', permissions: ['manage_projects'] },
+  { key: 'new_equipment', label: 'Crear equipo', href: '/inventory?newItem=1', permissions: ['manage_inventory'] },
 ]
 
 function roleCanAccessPermissions(role: AppRole, permissions: Permission[]): boolean {
@@ -124,4 +125,5 @@ export function getAllRoleConfigs() {
     return acc
   }, {} as Record<AppRole, NavConfigByRole[AppRole]>)
 }
+
 

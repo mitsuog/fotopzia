@@ -20,6 +20,7 @@ export type QuickActionKey =
   | 'new_quote'
   | 'new_contract'
   | 'new_project'
+  | 'new_equipment'
 
 export interface NavRoleConfig {
   modules: NavModuleKey[]

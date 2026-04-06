@@ -10,12 +10,14 @@ const EMPTY_STATE: SavedViewsState = {
   byModule: {
     crm: [],
     projects: [],
+    inventory: [],
   },
   defaults: {},
   lastQueryByModule: {},
   recentQueriesByModule: {
     crm: [],
     projects: [],
+    inventory: [],
   },
 }
 
@@ -36,12 +38,14 @@ function safeParseState(value: string | null): SavedViewsState {
       byModule: {
         crm: parsed.byModule?.crm ?? [],
         projects: parsed.byModule?.projects ?? [],
+        inventory: parsed.byModule?.inventory ?? [],
       },
       defaults: parsed.defaults ?? {},
       lastQueryByModule: parsed.lastQueryByModule ?? {},
       recentQueriesByModule: {
         crm: parsed.recentQueriesByModule?.crm ?? [],
         projects: parsed.recentQueriesByModule?.projects ?? [],
+        inventory: parsed.recentQueriesByModule?.inventory ?? [],
       },
     }
   } catch {

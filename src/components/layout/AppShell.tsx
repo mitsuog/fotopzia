@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -105,12 +105,20 @@ export function AppShell({ user, children }: AppShellProps) {
         router.push('/projects')
         return
       }
+      if (action === 'g:i') {
+        router.push('/inventory')
+        return
+      }
       if (action === 'n:d') {
         router.push('/crm?newDeal=1')
         return
       }
       if (action === 'n:p') {
         router.push('/projects/new')
+        return
+      }
+      if (action === 'n:i') {
+        router.push('/inventory?newItem=1')
       }
     }
 
@@ -144,7 +152,7 @@ export function AppShell({ user, children }: AppShellProps) {
       }
 
       const action = `${prev.key}:${normalized}`
-      if (action === 'g:c' || action === 'g:p' || action === 'n:d' || action === 'n:p') {
+      if (action === 'g:c' || action === 'g:p' || action === 'g:i' || action === 'n:d' || action === 'n:p' || action === 'n:i') {
         event.preventDefault()
         navigateByShortcut(action)
       }
@@ -246,3 +254,4 @@ export function AppShell({ user, children }: AppShellProps) {
     </div>
   )
 }
+

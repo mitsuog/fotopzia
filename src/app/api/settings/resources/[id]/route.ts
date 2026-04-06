@@ -14,11 +14,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (is_active !== undefined) patch.is_active = is_active
   if ('equipment_item_id' in body) patch.equipment_item_id = equipment_item_id ?? null
 
+  if (equipment_item_id) {
+    const { data: equipment } = await supabase
+      .from('equipment_items')
+      .select('id, status, is_decommissioned')
+      .eq('id', equipment_item_id)
+      .single()
+
+    if (!equipment || equipment.is_decommissioned || equipment.status === 'retirado') {
+      return NextResponse.json({ error: 'No se puede vincular equipo retirado o dado de baja.' }, { status: 409 })
+    }
+  }
+
   const { data, error } = await supabase
     .from('resources')
     .update(patch)
     .eq('id', id)
-    .select('*, equipment_item:equipment_items(id, name, status, condition)')
+    .select('*, equipment_item:equipment_items(id, name, status, condition, is_decommissioned)')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -39,7 +51,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   if ((count ?? 0) > 0) {
     return NextResponse.json(
-      { error: 'Este recurso está asignado a eventos futuros. Retíralo primero.' },
+      { error: 'Este recurso esta asignado a eventos futuros. Retiralo primero.' },
       { status: 409 },
     )
   }

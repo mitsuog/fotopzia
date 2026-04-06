@@ -17,10 +17,16 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
 
   const [itemRes, assignmentsRes, maintenanceRes, projectsRes] = await Promise.all([
     db.from('equipment_items').select('*, category:equipment_categories(*)').eq('id', itemId).single(),
-    db.from('equipment_assignments').select('*, project:projects(id,title)').eq('equipment_id', itemId).order('assigned_at', { ascending: false }),
+    db.from('equipment_assignments').select('*, project:projects(id,title), assignee:profiles!assigned_to(id,full_name)').eq('equipment_id', itemId).order('assigned_at', { ascending: false }),
     db.from('equipment_maintenance').select('*').eq('equipment_id', itemId).order('performed_at', { ascending: false }),
     supabase.from('projects').select('id, title').neq('is_archived', true).order('title'),
   ])
+
+  const { data: users } = await db
+    .from('profiles')
+    .select('id, full_name, email')
+    .eq('is_active', true)
+    .order('full_name')
 
   if (itemRes.error || !itemRes.data) notFound()
 
@@ -36,6 +42,7 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
         initialAssignments={(assignmentsRes.data ?? []) as EquipmentAssignment[]}
         initialMaintenance={(maintenanceRes.data ?? []) as EquipmentMaintenance[]}
         projects={(projectsRes.data ?? []) as unknown as { id: string; title: string }[]}
+        users={(users ?? []) as unknown as { id: string; full_name: string | null; email?: string | null }[]}
       />
     </div>
   )

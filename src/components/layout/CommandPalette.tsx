@@ -93,6 +93,7 @@ export function CommandPalette({ open, onOpenChange, role }: CommandPaletteProps
   const visibleModuleKeys = useMemo(() => new Set(getVisibleModules(role).map(item => item.key)), [role])
   const canAccessCrm = visibleModuleKeys.has('crm')
   const canAccessProjects = visibleModuleKeys.has('projects')
+  const canAccessInventory = visibleModuleKeys.has('inventory')
 
   const moduleItems = useMemo<PaletteItem[]>(
     () => getVisibleModules(role).map(item => ({
@@ -141,8 +142,8 @@ export function CommandPalette({ open, onOpenChange, role }: CommandPaletteProps
   const normalizedQuery = query.trim()
 
   const { data: recordItems = [] } = useQuery({
-    queryKey: ['command-palette-records', normalizedQuery, canAccessCrm, canAccessProjects],
-    enabled: open && normalizedQuery.length >= 2 && (canAccessCrm || canAccessProjects),
+    queryKey: ['command-palette-records', normalizedQuery, canAccessCrm, canAccessProjects, canAccessInventory],
+    enabled: open && normalizedQuery.length >= 2 && (canAccessCrm || canAccessProjects || canAccessInventory),
     staleTime: 30_000,
     queryFn: async (): Promise<PaletteItem[]> => {
       const supabase = createClient()
@@ -232,6 +233,51 @@ export function CommandPalette({ open, onOpenChange, role }: CommandPaletteProps
         )
       }
 
+      if (canAccessInventory) {
+        requests.push(
+          supabase
+            .from('equipment_items')
+            .select('id, name, asset_tag, updated_at')
+            .or(`name.ilike.${like},asset_tag.ilike.${like}`)
+            .order('updated_at', { ascending: false })
+            .limit(8)
+            .then(({ data, error }) => {
+              if (error) return []
+              return (data ?? []).map(item => ({
+                id: `record:equipment:${item.id}`,
+                label: `Equipo: ${item.name}`,
+                href: `/inventory?item=${item.id}&panel=1`,
+                category: 'Registro' as const,
+                subtitle: item.asset_tag ? `Inventario · ${item.asset_tag}` : 'Inventario',
+                updatedAt: (item.updated_at ?? null) as string | null,
+              }))
+            }),
+        )
+
+        requests.push(
+          supabase
+            .from('equipment_categories')
+            .select('id, name, created_at')
+            .ilike('name', like)
+            .order('created_at', { ascending: false })
+            .limit(5)
+            .then(({ data, error }) => {
+              if (error) return []
+              return (data ?? []).map(item => {
+                const name = typeof item.name === 'string' ? item.name : ''
+                return {
+                  id: `record:equipment-category:${item.id}`,
+                  label: `Categoria: ${name || 'Sin nombre'}`,
+                  href: `/inventory?objective=catalog&q=${encodeURIComponent(name)}`,
+                  category: 'Registro' as const,
+                  subtitle: 'Inventario',
+                  updatedAt: (item.created_at ?? null) as string | null,
+                }
+              })
+            }),
+        )
+      }
+
       const results = await Promise.all(requests)
       return results.flat()
     },
@@ -307,8 +353,10 @@ export function CommandPalette({ open, onOpenChange, role }: CommandPaletteProps
   const shortcuts = [
     { keys: 'g c', description: 'Ir a CRM' },
     { keys: 'g p', description: 'Ir a Proyectos' },
+    { keys: 'g i', description: 'Ir a Inventario' },
     { keys: 'n d', description: 'Nuevo deal' },
     { keys: 'n p', description: 'Nuevo proyecto' },
+    { keys: 'n i', description: 'Nuevo equipo' },
     { keys: '/', description: 'Buscar en modulo activo' },
   ]
 
@@ -388,4 +436,3 @@ export function CommandPalette({ open, onOpenChange, role }: CommandPaletteProps
     </div>
   )
 }
-

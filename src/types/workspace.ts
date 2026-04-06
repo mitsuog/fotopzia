@@ -17,7 +17,20 @@ export interface ProjectsWorkspaceQuery {
   archived?: '1' | '0'
 }
 
-export type WorkspaceModule = 'crm' | 'projects'
+export interface InventoryWorkspaceQuery {
+  objective?: 'catalog' | 'assignments' | 'traceability'
+  view?: 'list' | 'cards'
+  q?: string
+  status?: string
+  condition?: string
+  location?: string
+  assignee?: string
+  decommissioned?: 'all' | 'active' | 'decommissioned'
+  item?: string
+  panel?: '1' | '0'
+}
+
+export type WorkspaceModule = 'crm' | 'projects' | 'inventory'
 
 export interface SavedViewDefinition {
   id: string

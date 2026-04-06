@@ -11,12 +11,14 @@ export default async function ResourcesSettingsPage() {
   const [{ data: resources }, { data: equipmentItems }] = await Promise.all([
     supabase
       .from('resources')
-      .select('*, equipment_item:equipment_items(id, name, status, condition)')
+      .select('*, equipment_item:equipment_items(id, name, status, condition, is_decommissioned)')
       .order('type')
       .order('name'),
     supabase
       .from('equipment_items')
-      .select('id, name, asset_tag, status')
+      .select('id, name, asset_tag, status, is_decommissioned')
+      .eq('is_decommissioned', false)
+      .neq('status', 'retirado')
       .order('name'),
   ])
 
@@ -25,7 +27,7 @@ export default async function ResourcesSettingsPage() {
       <PageHeader
         title="Recursos del Estudio"
         subtitle="Estudios, equipos y personal disponibles para asignar a sesiones"
-        badge="Configuración"
+        badge="Configuracion"
       />
       <ResourcesPageClient
         initialResources={(resources ?? []) as unknown as StudioResource[]}

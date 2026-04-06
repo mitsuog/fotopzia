@@ -37,7 +37,7 @@ export interface ResourceOption {
   name: string
   type: string
   equipment_item_id?: string | null
-  equipment_item?: { id: string; status: string } | null
+  equipment_item?: { id: string; status: string; is_decommissioned?: boolean | null } | null
 }
 
 interface CalendarEventRow {
@@ -138,7 +138,7 @@ export function CalendarView({ mode, initialEvents, initialContacts = [], initia
     queryFn: async () => {
       const { data, error } = await supabase
         .from('resources')
-        .select('id, name, type, is_active, equipment_item_id, equipment_item:equipment_items(id, status)')
+        .select('id, name, type, is_active, equipment_item_id, equipment_item:equipment_items(id, status, is_decommissioned)')
         .eq('is_active', true)
         .order('name')
       if (error) throw error
@@ -148,7 +148,14 @@ export function CalendarView({ mode, initialEvents, initialContacts = [], initia
   })
 
   const sortedResources = useMemo(() => {
-    return [...resources].sort((a, b) => {
+    return [...resources]
+      .filter(resource => {
+        if (!resource.equipment_item_id) return true
+        if (!resource.equipment_item) return false
+        if (resource.equipment_item.is_decommissioned) return false
+        return resource.equipment_item.status !== 'retirado'
+      })
+      .sort((a, b) => {
       if (a.type === b.type) return a.name.localeCompare(b.name, 'es')
       if (a.type === 'personnel') return -1
       if (b.type === 'personnel') return 1

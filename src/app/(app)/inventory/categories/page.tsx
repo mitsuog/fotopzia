@@ -16,7 +16,7 @@ export default async function InventoryCategoriesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-brand-navy">Categorías de Equipo</h1>
+        <h1 className="text-xl font-bold text-brand-navy">Categorias de Equipo</h1>
         <p className="text-sm text-gray-400">Organiza tu inventario por tipo de equipo</p>
       </div>
       <InventoryCategoriesClient initialCategories={(categories ?? []) as EquipmentCategory[]} />
